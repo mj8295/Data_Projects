@@ -1,4 +1,4 @@
-#A/B Testing
+# A/B Testing
 
 A/B testing is a statistical hypothesis testing technique used to compare two versions of a product or marketing campaign to determine which performs better. A/B testing is used to evaluate the impact of changes to a product or campaign by randomly dividing a sample of users into two groups: the treatment group (also known as the experimental group) and the control group.
 
