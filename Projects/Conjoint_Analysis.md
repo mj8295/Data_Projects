@@ -1,6 +1,7 @@
 # Toy Horse Case
 
 ## Objective
+The objective of this analysis project is to perform a conjoint analysis to understand how consumers value different features of a product or service. The project will involve analyzing consumer survey data using conjoint analysis techniques and interpreting the results to understand how consumers value different features. In particular, the analysis will consider the potential impact of competitors' responses, as well as the costs associated with offering different features, including both variable costs and fixed costs.
 
 ## Tools Used
 - R
@@ -11,4 +12,4 @@
 
 ## Workflow
 
-##Outcomes & Conclusions Made
+## Outcomes & Conclusions Made
