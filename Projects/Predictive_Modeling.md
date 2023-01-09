@@ -1,6 +1,7 @@
 # Predictive Model Training and Testing
 
 ## Objective
+The objective of this project is to train a model and then test the model's ability to make predictions.  The model will be trained using both linear and nonlinear regression techniques, and the predictions made by the model will be compared to the actual values in the testing set to evaluate the model's performance.
 
 ## Tools Used
 - R
