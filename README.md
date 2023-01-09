@@ -26,7 +26,7 @@ This repository contains a selection of projects that demonstrate my analytical 
 - Root Mean Square Deviation (RMSE)
 - Extract Transform Load (ETL)
 - A/B Testing
-- 
+
 ## License
 
 This repository is licensed under the [MIT License](link to license). Feel free to use the code in these projects as you see fit, but please be sure to give appropriate credit.
