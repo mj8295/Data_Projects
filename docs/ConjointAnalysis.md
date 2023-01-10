@@ -28,7 +28,7 @@ Analysis](https://github.com/mj8295/Data_Projects/blob/74cdfa2d9156c8995cc85ca41
 
 ### Part 0: Initial Setup
 
-### Load the Data and the Needed Packages
+### Part 0.1: Load the Data and the Needed Packages
 
 ``` r
 setwd("C:/Users/Max/Documents/MSBA/MSBA Fall B/GBA 424/Case 5")
@@ -36,48 +36,11 @@ load(file = "GBA424 Fall 2020 - Toy Horse Case Data.Rdata")
 library(cluster)
 library(fpc)
 library(factoextra)
-```
-
-    ## Warning: package 'factoextra' was built under R version 4.0.3
-
-    ## Loading required package: ggplot2
-
-    ## Warning: The packages `ellipsis` (>= 0.3.2) and `vctrs` (>= 0.3.8) are required
-    ## as of rlang 1.0.0.
-
-    ## Warning: replacing previous import 'lifecycle::last_warnings' by
-    ## 'rlang::last_warnings' when loading 'tibble'
-
-    ## Warning: replacing previous import 'ellipsis::check_dots_unnamed' by
-    ## 'rlang::check_dots_unnamed' when loading 'tibble'
-
-    ## Warning: replacing previous import 'ellipsis::check_dots_used' by
-    ## 'rlang::check_dots_used' when loading 'tibble'
-
-    ## Warning: replacing previous import 'ellipsis::check_dots_empty' by
-    ## 'rlang::check_dots_empty' when loading 'tibble'
-
-    ## Warning: replacing previous import 'lifecycle::last_warnings' by
-    ## 'rlang::last_warnings' when loading 'pillar'
-
-    ## Warning: replacing previous import 'ellipsis::check_dots_unnamed' by
-    ## 'rlang::check_dots_unnamed' when loading 'pillar'
-
-    ## Warning: replacing previous import 'ellipsis::check_dots_used' by
-    ## 'rlang::check_dots_used' when loading 'pillar'
-
-    ## Warning: replacing previous import 'ellipsis::check_dots_empty' by
-    ## 'rlang::check_dots_empty' when loading 'pillar'
-
-    ## Welcome! Want to learn more? See two factoextra-related books at https://goo.gl/ve3WBa
-
-``` r
 library(gridExtra)
 ```
 
-    ## Warning: package 'gridExtra' was built under R version 4.0.3
 
-### Inspect the Data
+### Part 0.2: Inspect the Data
 
 ``` r
 head(conjointData)
@@ -93,26 +56,26 @@ head(conjointData)
 
 ### Part 1: Set up the Data for Analysis
 
-#### Create a matrix of all the possible product combinations
+#### Part 1.1: Create a matrix of all the possible product combinations
 
 ``` r
 # Creates a matrix of all possible product combinations
 desmat = matrix(unlist(conjointData[,4:7]), ncol = 4, byrow = F)
 ```
 
-#### Create a list of product attributes
+#### Part 1.2: Create a list of product attributes
 
 ``` r
 attributesMatrix = c("Low Price","Tall Size","Rocking","Glamour")
 ```
 
-#### Assign the product attributes defined above to the matrix desmat defined earlier
+#### Part 1.3: Assign the product attributes defined above to the matrix desmat defined earlier
 
 ``` r
 colnames(desmat) = attributesMatrix
 ```
 
-#### Map the respondentData to the conjointData based on the ID field
+#### Part 1.4: Map the respondentData to the conjointData based on the ID field
 
 Both of these files are found on the desktop and were provided to the
 analyst
@@ -121,7 +84,7 @@ analyst
 conjointDataDetail = merge(conjointData, respondentData, 'ID')
 ```
 
-#### Create an array of the various respondants attributes
+#### Part 1.5: Create an array of the various respondants attributes
 
 ``` r
 # Creates an array for the various attributes
@@ -139,7 +102,7 @@ These values will be used in our post-hoc segmentation process and to
 predict the missing ratings in incomplete profiles, resulting in a
 complete set of profile ratings.
 
-#### Calculate sample size
+#### Part 2.1: Calculate sample size
 
 This will be used to help fill out the partworths matrix that will be
 defined later
@@ -148,13 +111,13 @@ defined later
 sampsize = nrow(respondentData)
 ```
 
-#### Add column for constant
+#### Part 2.2: Add column for constant
 
 ``` r
 desmatf = cbind(rep(1,nrow(desmat)),desmat); 
 ```
 
-#### Create an empty matrix
+#### Part 2.3: Create an empty matrix
 
 This matrix will be filled with partworths that will be found in the
 next code chunk
@@ -163,7 +126,7 @@ next code chunk
 partworths = matrix(nrow=sampsize,ncol=ncol(desmatf))
 ```
 
-#### Fill out the partworth matrix
+#### Part 2.4: Fill out the partworth matrix
 
 This will be done running a regression and applying each profile to it
 
@@ -173,13 +136,13 @@ for(i in 1:sampsize){
 }
 ```
 
-#### Add column names to the partworths matrix
+#### Part 2.5: Add column names to the partworths matrix
 
 ``` r
 colnames(partworths) = c("Intercept",attributesMatrix)
 ```
 
-#### Predict the missing cells
+#### Part 2.6: Predict the missing cells
 
 This will prepare the data for the market simulation
 
@@ -187,13 +150,13 @@ This will prepare the data for the market simulation
 partworths.full = matrix(rep(partworths,each=16),ncol=5)
 ```
 
-#### Create an array of the ratings
+#### Part 2.7: Create an array of the ratings
 
 ``` r
 pratings = rowSums(desmatf*partworths.full)
 ```
 
-#### Combine mthe actual and predicted ratings
+#### Part 2.8: Combine mthe actual and predicted ratings
 
 ``` r
 finalratings = matrix(round(ifelse(is.na(ratings),pratings,ratings)),ncol = 16,byrow = T) 
@@ -210,7 +173,7 @@ process. This analysis will generate several visualizations to help us
 determine the unique profiles and optimal number of clusters that make
 up the segments.
 
-#### Create the clustTest function
+#### Part 3.1: Create the clustTest function
 
 This function will take the following arguments: - toClust, the data to
 do kmeans cluster analysis - maxClusts=15, the max number of clusters to
