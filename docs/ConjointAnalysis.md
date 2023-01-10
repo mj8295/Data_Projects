@@ -28,7 +28,7 @@ Analysis](https://github.com/mj8295/Data_Projects/blob/74cdfa2d9156c8995cc85ca41
 
 ### Part 0: Initial Setup
 
-### Part 0.1: Load the Data and the Needed Packages
+#### Part 0.1: Load the Data and the Needed Packages
 
 ``` r
 setwd("C:/Users/Max/Documents/MSBA/MSBA Fall B/GBA 424/Case 5")
@@ -40,7 +40,7 @@ library(gridExtra)
 ```
 
 
-### Part 0.2: Inspect the Data
+#### Part 0.2: Inspect the Data
 
 ``` r
 head(conjointData)
