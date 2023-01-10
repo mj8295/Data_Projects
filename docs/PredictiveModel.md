@@ -1,7 +1,8 @@
 Predictive Model Training and Testing
 ================
 Maximilian Johnson
-10 January, 2023
+
+10 January 2023
 
 
 ## Objective
