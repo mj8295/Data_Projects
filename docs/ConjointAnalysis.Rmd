@@ -1,0 +1,496 @@
+---
+title: "Conjoint Analysis"
+author: "Maximilian Johnson"
+date: "20 June 2022"
+output: github_document
+---
+
+## Objective
+The objective of this project is to perform a conjoint analysis to understand how consumers value different features of a product, in this case a toy horse. The project will involve analyzing consumer survey data using conjoint analysis techniques and interpreting the results to understand how consumers value different features. In particular, the analysis will consider the potential impact of competitors' responses, as well as the costs associated with offering different features, including both variable costs and fixed costs.
+
+## Tools Used
+- R
+- R Markdown
+
+## Concepts Used
+[Conjoint Analysis](https://github.com/mj8295/Data_Projects/blob/74cdfa2d9156c8995cc85ca41cb64ce991034a9f/Concepts/Conjoint_Analysis.md)
+
+## Workflow
+### Part 0: Initial Setup
+### Load the Data and the Needed Packages
+```{r}
+setwd("C:/Users/Max/Documents/MSBA/MSBA Fall B/GBA 424/Case 5")
+load(file = "GBA424 Fall 2020 - Toy Horse Case Data.Rdata")
+library(cluster)
+library(fpc)
+library(factoextra)
+library(gridExtra)
+```
+### Inspect the Data
+```{r dataInspection}
+head(conjointData)
+```
+### Part 1: Set up the Data for Analysis
+#### Create a matrix of all the possible product combinations
+```{r}
+# Creates a matrix of all possible product combinations
+desmat = matrix(unlist(conjointData[,4:7]), ncol = 4, byrow = F)
+```
+#### Create a list of product attributes
+```{r}
+attributesMatrix = c("Low Price","Tall Size","Rocking","Glamour")
+```
+#### Assign the product attributes defined above to the matrix desmat defined earlier
+```{r}
+colnames(desmat) = attributesMatrix
+```
+
+#### Map the respondentData to the conjointData based on the ID field
+Both of these files are found on the desktop and were provided to the analyst
+```{r}
+conjointDataDetail = merge(conjointData, respondentData, 'ID')
+```
+
+#### Create an array of the various respondants attributes
+```{r}
+# Creates an array for the various attributes
+ageD = conjointDataDetail[, 8]
+genderD = conjointDataDetail[, 9]
+ratings = conjointDataDetail[, 3]
+ID = conjointDataDetail[, 1]
+```
+
+### Part 2: Part-Utility Analysis
+This section includes an analysis that calculates the perceived benefits of each attribute, known as part-utilities, at the individual level. These values will be used in our post-hoc segmentation process and to predict the missing ratings in incomplete profiles, resulting in a complete set of profile ratings.
+
+#### Calculate sample size
+This will be used to help fill out the partworths matrix that will be defined later
+```{r}
+sampsize = nrow(respondentData)
+```
+#### Add column for constant
+```{r}
+desmatf = cbind(rep(1,nrow(desmat)),desmat); 
+```
+#### Create an empty matrix
+This matrix will be filled with partworths that will be found in the next code chunk
+```{r}
+partworths = matrix(nrow=sampsize,ncol=ncol(desmatf))
+```
+
+#### Fill out the partworth matrix
+This will be done running a regression and applying each profile to it
+```{r}
+for(i in 1:sampsize){
+  partworths[i,]=lm(ratings~desmat,subset=ID==i)$coef
+}
+```
+#### Add column names to the partworths matrix
+```{r}
+colnames(partworths) = c("Intercept",attributesMatrix)
+```
+#### Predict the missing cells
+This will prepare the data for the market simulation
+```{r}
+partworths.full = matrix(rep(partworths,each=16),ncol=5)
+```
+#### Create an array of the ratings
+```{r}
+pratings = rowSums(desmatf*partworths.full)
+```
+#### Combine mthe actual and predicted ratings
+```{r}
+finalratings = matrix(round(ifelse(is.na(ratings),pratings,ratings)),ncol = 16,byrow = T) 
+```
+
+### Part 3: Post-Hoc Segmentation
+In this section, cluster analysis is used on the part-utilities, including the constant defined in part 2, to identify the optimal post-hoc segmentation scheme. Post-hoc segmentation involves analyzing data to identify segments after it has been collected, as opposed to a-priori segmentation where segments are identified before the analysis process. This analysis will generate several visualizations to help us determine the unique profiles and optimal number of clusters that make up the segments.
+
+#### Create the clustTest function
+This function will take the following arguments:
+- toClust, the data to do kmeans cluster analysis
+- maxClusts=15, the max number of clusters to consider
+- seed, random number used to initialize the clusters
+- iter.max, the max iterations for clustering algorithms to use
+- nstart, the number of starting points to consider
+
+The function is designed to yield a list of weighted sum of squares and the pamk output including optimal number of clusters to create visualizations need to print tmp
+```{r}
+clustTest = function(toClust,print=TRUE,scale=TRUE,maxClusts=15,seed=12345,nstart=20,iter.max=100){
+  if(scale){ toClust = scale(toClust);}
+  set.seed(seed);
+  wss <- (nrow(toClust)-1)*sum(apply(toClust,2,var))
+  for (i in 2:maxClusts) wss[i] <- sum(kmeans(toClust,centers=i,nstart=nstart,iter.max=iter.max)$withinss)
+  ##gpw essentially does the following plot using wss above. 
+  #plot(1:maxClusts, wss, type="b", xlab="Number of Clusters",ylab="Within groups sum of squares")
+  gpw = fviz_nbclust(toClust,kmeans,method="wss",iter.max=iter.max,nstart=nstart,k.max=maxClusts) 
+  #alternative way to get wss elbow chart.
+    pm1 = pamk(toClust,scaling=TRUE)
+  ## pm1$nc indicates the optimal number of clusters based on 
+  ## lowest average silhoutte score (a measure of quality of clustering)
+  #alternative way that presents it visually as well.
+  gps = fviz_nbclust(toClust,kmeans,method="silhouette",iter.max=iter.max,nstart=nstart,k.max=maxClusts) 
+  if(print){
+    grid.arrange(gpw,gps, nrow = 1)
+  }
+  list(wss=wss,pm1=pm1$nc,gpw=gpw,gps=gps)
+}
+```
+--
+
+\newpage
+
+Next we will make the function runClusts that will plot the clusters on a graph for us to see
+```{r postHocSegmentation runClusts Function}
+# Runs a set of clusters as kmeans
+##Arguments:
+##  toClust, data.frame with data to cluster
+##  nClusts, vector of number of clusters, each run as separate kmeans 
+##  ... some additional arguments to be passed to clusters
+##Return:
+##  list of 
+##    kms, kmeans cluster output with length of nClusts
+##    ps, list of plots of the clusters against first 2 principle components
+runClusts = function(toClust,nClusts,print=TRUE,maxClusts=15,seed=12345,nstart=20,iter.max=100){
+  if(length(nClusts)>4){
+    warning("Using only first 4 elements of nClusts.")
+  }
+  kms=list(); ps=list();
+  for(i in 1:length(nClusts)){
+    kms[[i]] = kmeans(toClust,nClusts[i],iter.max = iter.max, nstart=nstart)
+    ps[[i]] = fviz_cluster(kms[[i]], geom = "point", data = toClust) + ggtitle(paste("k =",nClusts[i]))
+   
+  }
+  library(gridExtra)
+  if(print){
+    tmp = marrangeGrob(ps, nrow = 2,ncol=2)
+    print(tmp)
+  }
+  list(kms=kms,ps=ps)
+}
+```
+--
+
+\newpage
+
+Finally we will make the function plotClust that will give us some more in debth visuals on the clusters we want to investigate
+```{r postHocSegmentation plotClust Function}
+# Plots a kmeans cluster as three plot report
+##  pie chart with membership percentages
+##  plot that indicates cluster definitions against principle components
+##  barplot of the cluster means, which by default standardizes the cluster means
+plotClust = function(km,toClust,
+                     discPlot=FALSE,standardize=TRUE,margins = c(7,4,4,2)){
+  nc = length(km$size)
+  #if(discPlot){par(mfrow=c(2,2))}
+  #else {par(mfrow=c(2,2))}
+  percsize = paste(1:nc," = ",format(km$size/sum(km$size)*100,digits=2),"%",sep="")
+  pie(km$size,labels=percsize,col=1:nc)
+  
+  gg = fviz_cluster(km, geom = "point", data = toClust) + ggtitle(paste("k =",nc))
+  print(gg)
+  #clusplot(toClust, km$cluster, color=TRUE, shade=TRUE,
+  #         labels=2, lines=0,col.clus=1:nc); #plot clusters against principal components
+  
+  if(discPlot){
+    plotcluster(toClust, km$cluster,col=km$cluster); #plot against discriminant functions ()
+  }
+  if(!standardize){
+    rng = range(km$centers)
+    dist = rng[2]-rng[1]
+    locs = km$centers+.05*dist*ifelse(km$centers>0,1,-1)
+    bm = barplot(km$centers,beside=TRUE,col=1:nc,main="Cluster Means",ylim=rng+dist*c(-.1,.1))
+    text(bm,locs,formatC(km$centers,format="f",digits=1))
+  } else {
+    kmc = (km$centers-rep(colMeans(toClust),each=nc))/rep(apply(toClust,2,sd),each=nc)
+    rng = range(kmc)
+    dist = rng[2]-rng[1]
+    locs = kmc+.05*dist*ifelse(kmc>0,1,-1)
+    par(mar=margins)
+    bm = barplot(kmc,col=1:nc,beside=TRUE,las=2,main="Cluster Means",ylim=rng+dist*c(-.1,.1))
+    text(bm,locs,formatC(kmc,format="f",digits=1))
+  }
+}
+```
+
+--
+
+Now lets apply these functions and take a look at the outputs
+```{r postHocSegmentation Application}
+# set random number seed before doing cluster analysis so results are constant
+set.seed(123) 
+
+toClust = partworths
+tmp = clustTest(toClust)
+```
+
+
+These charts show us that three is the optimal amount of clusters.  The graph on the right bends when the x-axis is 3 and the graph on the right peaks when the x-axis is 3 as well which is how we can tell 3 is the optimal amount of clusters.
+
+--
+
+Now lets see what happens when we plot 2, 3, and 4 clusters on a chart using the runClust Function
+```{r postHocSegmentation Application2}
+# set random number seed before doing cluster analysis so results are constant
+clusts = runClusts(toClust,2:4)
+```
+
+This chart confirms that the data best conforms to being separated into 3 distinct clusters
+
+--
+
+With the information we have gained above lets see what happens when we divide our population into 3 clusters
+```{r postHocSegmentation Application3}
+
+plotClust(clusts$kms[[2]],toClust)
+
+```
+
+We can see that the second segmentation of 3 segments is the best because it best represented the idea of homogeneity within and heterogeneity between better than 2 segments or 4 segments. 
+
+The best products for each segment are as follows:
+
+Segment 1: Profile 4 - 119.99, 26 inch, bouncing, racing
+
+Segment 2: Profile 14 - 119.99, 18 inch, rocking, glamour
+
+Segment 3: Profile 16 - 119.99, 26 inch, rocking, glamour
+
+--
+
+In this section we will perform an a priori segmentation analyses using the variables gender and age in order to profile the attribute preferences based on these variables.
+
+The output charts can be read as follows:
+
+Call - the function that generated the report
+
+Residuals - some summary statistics on the data
+
+Coefficients - the amount each variable affects the output (rating)
+
+```{r aPrioriSegmentation}
+#a priori segmentation for age
+summary(lm(ratings~desmat*ageD))
+
+# a priori segmentation for gender
+summary(lm(ratings~desmat*genderD))
+
+
+##note if significant. can run separately for two categories
+# older kids 3-4 years old
+summary(lm(ratings~desmat,subset=ageD==1))
+
+# young kids 2 years old
+summary(lm(ratings~desmat,subset=ageD==0)) 
+
+##note if significant. can run separately for two categories
+# Female
+summary(lm(ratings~desmat,subset=genderD==1))
+
+# Male
+summary(lm(ratings~desmat,subset=genderD==0))
+
+```
+
+This analysis shows us that gender was the most important factor and that girls prefer glamour horses while boys prefer racing horses.  Additionally the older children prefer the 26 inch horse more than the younger children do. Finally we saw that all of the consumers prefer lower prices.  All of these conclusions make sense and thus we will work off of these.
+
+--
+
+In this section we will perform a disaggregate analysis with a first choice rule to forecast market shares for a decision-relevant set of scenarios. Using these market shares and the information about costs in the case, we will calculate profitability for each product in the product line as well as the overall profitability for the firm and competition. 
+
+
+```{r marketSimulation}
+# assumption that our competitor will not raise their price is made below
+# we will test many different toy horse profiles so we can see which is best
+scens = list()
+scens[[1]]=c(5,13,7)    # status quo
+scens[[2]]=c(15,7)        
+scens[[3]]=c(16,7)        
+scens[[4]]=c(8,7)         
+scens[[5]]=c(4,7)         
+scens[[6]]=c(3,7)     
+scens[[7]]=c(14,7)  
+scens[[8]]=c(13,7)   
+scens[[9]]=c(15,16,7) 
+scens[[10]]=c(15,8,7) 
+scens[[11]]=c(15,4,7) 
+scens[[12]]=c(15,3,7) 
+scens[[13]]=c(15,14,7) 
+scens[[14]]=c(15,13,7) 
+scens[[15]]=c(16,8,7) 
+scens[[16]]=c(16,4,7) 
+scens[[17]]=c(16,3,7) 
+scens[[18]]=c(16,14,7)
+scens[[19]]=c(16,13,7) 
+scens[[20]]=c(8,4,7)
+scens[[21]]=c(8,3,7) 
+scens[[20]]=c(8,14,7)
+scens[[21]]=c(8,13,7) 
+scens[[22]]=c(4,14,7)
+scens[[23]]=c(4,13,7) 
+scens[[24]]=c(3,14,7) 
+scens[[25]]=c(3,13,7) 
+scens[[26]]=c(15,16,8,7) 
+scens[[27]]=c(15,16,4,7) 
+scens[[28]]=c(15,16,3,7) 
+scens[[29]]=c(15,16,14,7)
+scens[[30]]=c(15,16,13,7) 
+scens[[31]]=c(16,8,4,7) 
+scens[[32]]=c(16,8,3,7) 
+scens[[33]]=c(16,8,14,7) 
+scens[[34]]=c(16,8,13,7) 
+scens[[35]]=c(16,4,3,7)
+scens[[36]]=c(16,4,14,7) 
+scens[[37]]=c(16,3,14,7) 
+scens[[38]]=c(16,3,13,7) 
+scens[[39]]=c(16,14,13,7) 
+scens[[40]]=c(16,8,13,7) 
+scens[[41]]=c(15,8,4,7)
+scens[[42]]=c(15,8,3,7) 
+scens[[43]]=c(15,8,14,7) 
+scens[[44]]=c(15,8,13,7) 
+scens[[45]]=c(15,8,13,7) 
+scens[[46]]=c(15,4,3,7)
+scens[[47]]=c(15,4,14,7) 
+scens[[48]]=c(15,4,13,7) 
+scens[[49]]=c(15,3,14,7) 
+scens[[50]]=c(15,3,13,7) 
+scens[[51]]=c(15,14,13,7) 
+scens[[52]]=c(8,4,3,7)
+scens[[53]]=c(8,4,14,7) 
+scens[[54]]=c(8,4,13,7) 
+scens[[55]]=c(8,3,14,7) 
+scens[[56]]=c(8,3,13,7) 
+scens[[57]]=c(4,3,14,7) 
+scens[[58]]=c(4,3,13,7) 
+scens[[59]]=c(4,14,13,7) 
+scens[[60]]=c(4,3,7)
+scens[[61]]=c(14,13,7)
+```
+
+--
+
+simScenarios function is defined here and will be used to simulate each scenario as defined in the section above
+```{r simScenarios}
+# Market simulation based on the scenarios defined above
+
+# simScenatios Arguments:
+#   scen - a list of scenarios, which are vectors that index into data
+#   data - a data.frame containing the rank order information
+#   ... - an argument that accepts anything else and just passes it along
+# Return:
+#   data.frame containing shares with columns corresponding to the columns in the data
+
+simScenarios = function(scen,data,...){ 
+  choice = list()
+  # loop over scenarios
+  for (k in 1: length(scen)){
+    # constructs a subsetted matrix of options
+    inmkt = data[, scen[[k]]]
+    # Fills decision as 1 or 0 for all products in subsetted matrix constructed above
+    for (i in 1:nrow(inmkt)){
+      bestOpts = max(inmkt[i,]) 
+    for (j in 1:ncol(inmkt)){
+      if(inmkt[i,j]==bestOpts){
+       inmkt[i,j] = 1
+      } else{
+      inmkt[i,j] = 0  
+      }
+  }
+  # will split the 1 evenly if there is a tie
+      inmkt[i,] = inmkt[i,]/sum(inmkt[i,])}
+  # assigns the best option to choice
+    choice[[k]]=inmkt}
+  # returns the choice from the function
+  return(choice)}
+```
+
+--
+
+\newpage
+
+shs function is defined here and will determine the market share of each scenario
+```{r shs}
+# assumes that total decisions is market size
+# calculates the market share
+shs = function(decs){
+  colSums(decs)/sum(decs)}
+``` 
+
+--
+
+simFCShares function is defined here
+```{r simFCShares}
+simFCShares = function(scen, data){
+  #fill decisions to be 0 or 1 for all products
+  decs = simScenarios(scen, data)
+  #applies the decs input to the shs function and saves the output to share
+  share = lapply(decs,shs)
+  return(share)
+}
+
+```
+
+--
+
+simProfit function is defined here
+```{r simProfit}
+# Calculates the expected profit given the share calculated in the simFCShares function (mktshr)
+# Will return a list containing 2 lists. The first list will be a list of our profits and the second list will be a list of our competitor's profits
+simProfit = function(inputmat,scens,mktshr){
+   cm = list()
+   result = c()
+   competitor = c()
+   for (i in 1:length(scens)){
+     margin = profilesData[scens[[i]],'margin']
+     cm[[i]] = unlist(mktshr[[i]])*margin* 4000
+     result[i] = sum(cm[[i]][-length(cm[[i]])]) - 20000*(length(cm[[i]])-1) -7000*sum( !scens[[i]] %in% c(5,7,13))
+     competitor[i] = cm[[i]][length(cm[[i]])] - 20000
+       }
+   return(list(result,competitor))
+   
+ }
+```
+
+--
+
+\newpage
+
+Application of Market Simulation Functions
+```{r marketSimulation application}
+##Generate profits given market simulation
+for (i in (1:nrow(profilesData))){
+  if (profilesData[i, 'size'] == 0 & profilesData[i,'motion']==1){
+    vcosts = 33
+  }else if(profilesData[i, 'size'] == 1 & profilesData[i,'motion']==1){
+    vcosts = 41
+  }else if(profilesData[i, 'size'] == 0 & profilesData[i,'motion']==0){
+    vcosts = 21
+  }else if(profilesData[i, 'size'] == 1 & profilesData[i,'motion']==0){
+    vcosts = 29}
+  
+  if(profilesData[i, 'price'] ==0){
+    prices = 111.99
+  } else{
+    prices =95.99
+  }
+  profilesData$margin[i] = prices - vcosts
+}
+profilesData
+
+# Runs simFCShares function and assignes output to mktshare to be used in simProfit function below
+mktshr = simFCShares(scens,finalratings)
+
+simProfit(finalratings,scens,mktshr)
+profit <- as.data.frame(simProfit(finalratings,scens,mktshr))
+colnames(profit) <- c("profits","competiors")
+which.max(profit$profits)
+# scenario 50 maximize profits
+# scens[[50]] = c(15,3,13,7) 
+
+```
+
+ 
+We choose to go with a scenario where our client offers two different horses, profile 3 and profile 15.  Even though this does not maximize the profit of the client, it leaves enough profit for the competitor that the likelihood that they will change is minimized.  In this scenario our client still receives nearly 200,000 in profit while the competitor receives 30,000 in profit.  Additionally in the cluster analysis we found three distinct clusters.  If we introduce three different products then there will be 4 different products on the market which means there is a good possibility that we will either cannibalize our own sales, or the competitor's product will outperform our own.  This is why we recommended our client to only offer two products, profile 3 and profile 15.
+
+We chose the scenarios we did based off of our apriori and post-hoc segmentation.  It would have been unreasonable to test every scenario even though that would be the best course of action given unlimited computing power.  When given a small number of horses to test, we can test each combination fairly efficiently.
