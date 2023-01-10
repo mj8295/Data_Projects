@@ -108,6 +108,7 @@ This function will take the following arguments:
 - seed, random number used to initialize the clusters
 - iter.max, the max iterations for clustering algorithms to use
 - nstart, the number of starting points to consider
+
 The function is designed to yield a list of weighted sum of squares and the pamk output including optimal number of clusters to create visualizations need to print tmp
 ```{r}
 clustTest = function(toClust,print=TRUE,scale=TRUE,maxClusts=15,seed=12345,nstart=20,iter.max=100){
