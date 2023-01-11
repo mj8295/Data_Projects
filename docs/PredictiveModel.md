@@ -351,3 +351,5 @@ model1 <- earth(card ~ (reports^2 * share^2) + (reports^2 * active) + poly(age,3
 ```
 
 ## Outcomes & Conclusions Made
+
+Creating a predictive model is a process of experimentation where different models are tested and evaluated to find the one that has the best performance. This process can involve trying out different algorithms, adjusting various hyperparameters, and even incorporating domain-specific knowledge to improve the model's performance. Additionally, feature engineering and selection play a big role in finding the right model, which is typically done through a process of trial and error. This is often referred to as model selection or hyperparameter tuning.
