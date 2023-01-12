@@ -5,7 +5,7 @@ Maximilian Johnson
 
 ## Objective
 
-The objective of this project is to perform a conjoint analysis to
+The objective of this project is to
 understand how consumers value different features of a product, in this
 case a toy horse. The project will involve analyzing consumer survey
 data using conjoint analysis techniques and interpreting the results to
@@ -175,11 +175,12 @@ up the segments.
 
 #### Part 3.1: Create the clustTest function
 
-This function will take the following arguments: - toClust, the data to
-do kmeans cluster analysis - maxClusts=15, the max number of clusters to
-consider - seed, random number used to initialize the clusters -
-iter.max, the max iterations for clustering algorithms to use - nstart,
-the number of starting points to consider
+This function will take the following arguments: 
+- toClust - the data to do kmeans cluster analysis 
+- maxClusts - the max number of clusters to consider 
+- seed - random number used to initialize the clusters
+- iter.max - the max iterations for clustering algorithms to use 
+- nstart - the number of starting points to consider
 
 The function is designed to yield a list of weighted sum of squares and
 the pamk output including optimal number of clusters to create
@@ -206,22 +207,22 @@ clustTest = function(toClust,print=TRUE,scale=TRUE,maxClusts=15,seed=12345,nstar
   list(wss=wss,pm1=pm1$nc,gpw=gpw,gps=gps)
 }
 ```
+#### Part 3.2: Create the runClust function
 
-–
+runClust will run a set of clusters as kmeans and plot them
 
-Next we will make the function runClusts that will plot the clusters on
-a graph for us to see
 
+Arguments:
+- toClust, data.frame with data to cluster
+- nClusts, vector of number of clusters, each run as separate kmeans 
+- ... some additional arguments to be passed to clusters
+
+
+Return:
+list of 
+- kms - kmeans cluster output with length of nClusts
+- ps - list of plots of the clusters against first 2 principle components
 ``` r
-# Runs a set of clusters as kmeans
-##Arguments:
-##  toClust, data.frame with data to cluster
-##  nClusts, vector of number of clusters, each run as separate kmeans 
-##  ... some additional arguments to be passed to clusters
-##Return:
-##  list of 
-##    kms, kmeans cluster output with length of nClusts
-##    ps, list of plots of the clusters against first 2 principle components
 runClusts = function(toClust,nClusts,print=TRUE,maxClusts=15,seed=12345,nstart=20,iter.max=100){
   if(length(nClusts)>4){
     warning("Using only first 4 elements of nClusts.")
@@ -240,29 +241,24 @@ runClusts = function(toClust,nClusts,print=TRUE,maxClusts=15,seed=12345,nstart=2
   list(kms=kms,ps=ps)
 }
 ```
+#### Part 3.3: Create the plotClust function
 
-–
+The plotClust function will generate an in debth visual of the clusters.
 
-Finally we will make the function plotClust that will give us some more
-in debth visuals on the clusters we want to investigate
+Plots a kmeans cluster as three plot report
+-  pie chart with membership percentages
+-  plot that indicates cluster definitions against principle components
+-  barplot of the cluster means, which by default standardizes the cluster means
 
 ``` r
-# Plots a kmeans cluster as three plot report
-##  pie chart with membership percentages
-##  plot that indicates cluster definitions against principle components
-##  barplot of the cluster means, which by default standardizes the cluster means
 plotClust = function(km,toClust,
                      discPlot=FALSE,standardize=TRUE,margins = c(7,4,4,2)){
   nc = length(km$size)
-  #if(discPlot){par(mfrow=c(2,2))}
-  #else {par(mfrow=c(2,2))}
   percsize = paste(1:nc," = ",format(km$size/sum(km$size)*100,digits=2),"%",sep="")
   pie(km$size,labels=percsize,col=1:nc)
   
   gg = fviz_cluster(km, geom = "point", data = toClust) + ggtitle(paste("k =",nc))
   print(gg)
-  #clusplot(toClust, km$cluster, color=TRUE, shade=TRUE,
-  #         labels=2, lines=0,col.clus=1:nc); #plot clusters against principal components
   
   if(discPlot){
     plotcluster(toClust, km$cluster,col=km$cluster); #plot against discriminant functions ()
@@ -284,11 +280,11 @@ plotClust = function(km,toClust,
   }
 }
 ```
+### Part 4: Visual Analysis
 
-–
+Apply the functions created in step 3 to analyze the output visualizations and determine the optimal cluster size.
 
-Now lets apply these functions and take a look at the outputs
-
+#### Part 4.1: Elbow Chart Analysis
 ``` r
 # set random number seed before doing cluster analysis so results are constant
 set.seed(123) 
@@ -299,18 +295,13 @@ tmp = clustTest(toClust)
 
 ![](ConjointAnalysis_files/figure-gfm/postHocSegmentation%20Application-1.png)<!-- -->
 
-These charts show us that three is the optimal amount of clusters. The
-graph on the right bends when the x-axis is 3 and the graph on the right
-peaks when the x-axis is 3 as well which is how we can tell 3 is the
-optimal amount of clusters.
+These charts indicate that three clusters is the optimal amount of clusters. Both visuals have a kink in the line when the x-axis is 3, indicating that three is the optimal amount of clusters.
 
-–
+#### Part 4.2 runClust Analysis
 
-Now lets see what happens when we plot 2, 3, and 4 clusters on a chart
-using the runClust Function
+Based on the results seen in Part 4.1, use the runClust function to test 2, 3, and 4 clusters.
 
 ``` r
-# set random number seed before doing cluster analysis so results are constant
 clusts = runClusts(toClust,2:4)
 ```
 
@@ -319,10 +310,9 @@ clusts = runClusts(toClust,2:4)
 This chart confirms that the data best conforms to being separated into
 3 distinct clusters
 
-–
 
-With the information we have gained above lets see what happens when we
-divide our population into 3 clusters
+#### Part 4.3: plotClust Analysis
+With the information yielded in parts 4.1 & 4.2, divide the data into 3 clusters and run it through the plotClust function
 
 ``` r
 plotClust(clusts$kms[[2]],toClust)
@@ -330,20 +320,15 @@ plotClust(clusts$kms[[2]],toClust)
 
 ![](ConjointAnalysis_files/figure-gfm/postHocSegmentation%20Application3-1.png)<!-- -->![](ConjointAnalysis_files/figure-gfm/postHocSegmentation%20Application3-2.png)<!-- -->![](ConjointAnalysis_files/figure-gfm/postHocSegmentation%20Application3-3.png)<!-- -->
 
-We can see that the second segmentation of 3 segments is the best
-because it best represented the idea of homogeneity within and
-heterogeneity between better than 2 segments or 4 segments.
+These results further the idea that 3 segments is the best.  Three segments best represents the idea of homogeneity within and heterogeneity between better than 2 segments or 4 segments.
 
 The best products for each segment are as follows:
 
-Segment 1: Profile 4 - 119.99, 26 inch, bouncing, racing
+- Segment 1: Profile 4 - 119.99, 26 inch, bouncing, racing
+- Segment 2: Profile 14 - 119.99, 18 inch, rocking, glamour
+- Segment 3: Profile 16 - 119.99, 26 inch, rocking, glamour
 
-Segment 2: Profile 14 - 119.99, 18 inch, rocking, glamour
-
-Segment 3: Profile 16 - 119.99, 26 inch, rocking, glamour
-
-–
-
+Step 5: A Priori Segmentation
 In this section we will perform an a priori segmentation analyses using
 the variables gender and age in order to profile the attribute
 preferences based on these variables.
