@@ -22,8 +22,11 @@ including both variable costs and fixed costs.
 ## Concepts Used
 
 [Conjoint Analysis](https://github.com/mj8295/Data_Projects/blob/74cdfa2d9156c8995cc85ca41cb64ce991034a9f/Concepts/Conjoint_Analysis.md)
+
 [Cluster Analysis](https://github.com/mj8295/Data_Projects/blob/467a88c3704484924407fcd1f28c71f71b500267/Concepts/ClusterAnalysis.md)
+
 [A Priori Segmentation](https://github.com/mj8295/Data_Projects/blob/467a88c3704484924407fcd1f28c71f71b500267/Concepts/APrioriSegmentation.md)
+
 [Post-Hoc Segmentation](https://github.com/mj8295/Data_Projects/blob/467a88c3704484924407fcd1f28c71f71b500267/Concepts/PostHocSegmentation.md)
 
 ## Workflow
