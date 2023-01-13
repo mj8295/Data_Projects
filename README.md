@@ -4,9 +4,9 @@ This repository contains a selection of projects that demonstrate my analytical 
 
 ## Projects
 
-- [Conjoint Analysis](link to project): A brief description of the project and its main features.
-- [Predictive Model Training and Evaluation](link to project): A brief description of the project and its main features.
-- [Latent Dirichlet Allocation](link to project): A brief description of the project and its main features.
+### [Conjoint Analysis](link to project): A brief description of the project and its main features.
+### [Predictive Model Training and Evaluation](link to project): A brief description of the project and its main features.
+### [Latent Dirichlet Allocation](link to project): A brief description of the project and its main features.
 
 ## Tools and concepts used
 
@@ -14,9 +14,6 @@ This repository contains a selection of projects that demonstrate my analytical 
 - R
 - Python
 - SQL
-- Excel
-- Tableau
-- Qlik
 
 ### Concepts
 - [Conjoint Analysis](https://github.com/mj8295/Data_Projects/blob/523e9ca6aadcc4b576b0e0fb2d7e09e94fbca929/Concepts/Conjoint_Analysis.md)
