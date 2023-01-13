@@ -4,9 +4,9 @@ This repository contains a selection of projects that demonstrate my analytical 
 
 ## Projects
 
-### [Conjoint Analysis](link to project): A brief description of the project and its main features.
-### [Predictive Model Training and Evaluation](link to project): A brief description of the project and its main features.
-### [Latent Dirichlet Allocation](link to project): A brief description of the project and its main features.
+### [Conjoint Analysis](https://github.com/mj8295/Data_Projects/blob/35efdd8ab02984b77d96d31036999c1073454ecb/docs/ConjointAnalysis.md)
+### [Predictive Model Training and Evaluation](https://github.com/mj8295/Data_Projects/blob/35efdd8ab02984b77d96d31036999c1073454ecb/docs/PredictiveModel.md)
+### [Latent Dirichlet Allocation](link to project)
 
 ## Tools and concepts used
 
