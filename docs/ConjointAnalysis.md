@@ -333,21 +333,18 @@ The best products for each segment are as follows:
 - Segment 2: Profile 14 - 119.99, 18 inch, rocking, glamour
 - Segment 3: Profile 16 - 119.99, 26 inch, rocking, glamour
 
-Step 5: A Priori Segmentation
-In this section we will perform an a priori segmentation analyses using
-the variables gender and age in order to profile the attribute
-preferences based on these variables.
+### Step 5: A Priori Segmentation
+In this section an a priori segmentation analysis will be performed using the variables gender and age in order to profile the attribute preferences based on these variables.
+
 
 The output charts can be read as follows:
 
-Call - the function that generated the report
+- Call - the function that generated the report
+- Residuals - some summary statistics on the data
+- Coefficients - the amount each variable affects the output (rating)
 
-Residuals - some summary statistics on the data
-
-Coefficients - the amount each variable affects the output (rating)
-
+#### Part 5.1: Perform A Priori Segmentation on Age
 ``` r
-#a priori segmentation for age
 summary(lm(ratings~desmat*ageD))
 ```
 
@@ -379,8 +376,8 @@ summary(lm(ratings~desmat*ageD))
     ## Multiple R-squared:  0.2086, Adjusted R-squared:  0.2056 
     ## F-statistic: 70.01 on 9 and 2390 DF,  p-value: < 2.2e-16
 
+#### Step 5.2: Perform A Priori Segmentation on Gender
 ``` r
-# a priori segmentation for gender
 summary(lm(ratings~desmat*genderD))
 ```
 
@@ -412,9 +409,8 @@ summary(lm(ratings~desmat*genderD))
     ## Multiple R-squared:  0.2787, Adjusted R-squared:  0.276 
     ## F-statistic: 102.6 on 9 and 2390 DF,  p-value: < 2.2e-16
 
+#### Step 5.3: Perform A Priori Segmentation on older kids (aged 3-4)
 ``` r
-##note if significant. can run separately for two categories
-# older kids 3-4 years old
 summary(lm(ratings~desmat,subset=ageD==1))
 ```
 
@@ -441,8 +437,8 @@ summary(lm(ratings~desmat,subset=ageD==1))
     ## Multiple R-squared:  0.2224, Adjusted R-squared:  0.2198 
     ## F-statistic: 86.28 on 4 and 1207 DF,  p-value: < 2.2e-16
 
+#### Step 5.4: Perform A Priori Segmentation on younger kids (aged 2 or less)
 ``` r
-# young kids 2 years old
 summary(lm(ratings~desmat,subset=ageD==0)) 
 ```
 
@@ -469,9 +465,8 @@ summary(lm(ratings~desmat,subset=ageD==0))
     ## Multiple R-squared:  0.1896, Adjusted R-squared:  0.1869 
     ## F-statistic: 69.21 on 4 and 1183 DF,  p-value: < 2.2e-16
 
+#### Step 5.5: Perform A Priori Segmentation on Girls
 ``` r
-##note if significant. can run separately for two categories
-# Female
 summary(lm(ratings~desmat,subset=genderD==1))
 ```
 
@@ -498,8 +493,8 @@ summary(lm(ratings~desmat,subset=genderD==1))
     ## Multiple R-squared:  0.1876, Adjusted R-squared:  0.1851 
     ## F-statistic: 74.51 on 4 and 1291 DF,  p-value: < 2.2e-16
 
+#### Step 5.6: Perform A Priori Segmentation on Boys
 ``` r
-# Male
 summary(lm(ratings~desmat,subset=genderD==0))
 ```
 
@@ -525,28 +520,17 @@ summary(lm(ratings~desmat,subset=genderD==0))
     ##   (368 observations deleted due to missingness)
     ## Multiple R-squared:  0.2867, Adjusted R-squared:  0.2841 
     ## F-statistic: 110.4 on 4 and 1099 DF,  p-value: < 2.2e-16
+This analysis suggests that gender plays a significant role in determining customer preferences for products. The data reveals that girls tend to prefer glamour horses while boys prefer racing horses. Additionally, older children tend to prefer the 26-inch horse over younger children. As expected, all consumers prefer lower prices. These findings are logical and will be taken into consideration when defining different product mixes later on in the analysis.
 
-This analysis shows us that gender was the most important factor and
-that girls prefer glamour horses while boys prefer racing horses.
-Additionally the older children prefer the 26 inch horse more than the
-younger children do. Finally we saw that all of the consumers prefer
-lower prices. All of these conclusions make sense and thus we will work
-off of these.
+### Part 6: Disagergate Choice Model
 
-–
+This section will conduct a disaggregate choice analysis using a first choice rule to predict market shares for various scenarios. The objective is to forecast market shares for a relevant set of scenarios to the decision at hand. With these market share predictions and cost information, profitability for each product in the product line, as well as overall profitability for the firm and competition, will be calculated.
 
-In this section we will perform a disaggregate analysis with a first
-choice rule to forecast market shares for a decision-relevant set of
-scenarios. Using these market shares and the information about costs in
-the case, we will calculate profitability for each product in the
-product line as well as the overall profitability for the firm and
-competition.
-
+#### Part 6.1: Define Scenarios
+The assumption that the competitor will not increase their prices will be made. It is crucial to evaluate a broad range of product mixes to identify the optimal option. However, it is not practical to evaluate every possible product combination. Therefore, the data collected in the A Priori Segmentation Analysis will be used to selectively define scenarios. It's worth noting that the first scenario defined (scens[[1]]) represents the current market view.
 ``` r
-# assumption that our competitor will not raise their price is made below
-# we will test many different toy horse profiles so we can see which is best
 scens = list()
-scens[[1]]=c(5,13,7)    # status quo
+scens[[1]]=c(5,13,7)
 scens[[2]]=c(15,7)        
 scens[[3]]=c(16,7)        
 scens[[4]]=c(8,7)         
@@ -610,11 +594,27 @@ scens[[59]]=c(4,14,13,7)
 scens[[60]]=c(4,3,7)
 scens[[61]]=c(14,13,7)
 ```
+#### Part 6.2: Define Functions to Perform a Market Simulation 
 
-–
+##### Part 6.2.1: Define simSecnarios Function
+This function will be used to simulate each scenario as defined in Part 6.1
 
-simScenarios function is defined here and will be used to simulate each
-scenario as defined in the section above
+
+simScenatios Arguments:
+- scen - a list of scenarios, which are vectors that index into data
+- data - a data.frame containing the rank order information
+- ... - an argument that accepts anything else and just passes it along
+
+
+Return:
+- data.frame containing shares with columns corresponding to the columns in the data
+
+This function works by looping over each scenario and:
+1. Create a subsetted matrix.
+2. For each product, make a decision by assigning a value of 1 or 0, with 1 indicating that the product was chosen by the consumer.
+3. Assign the best option to the "choice" list.
+
+After each scenario has been evaluated, the list "choice" will be returned.  Note that in the case of a tie the 1 will be 
 
 ``` r
 # Market simulation based on the scenarios defined above
