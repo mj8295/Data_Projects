@@ -5,17 +5,15 @@ Maximilian Johnson
 
 ## Objective
 
-The objective of this project is to
-understand how consumers value different features of a product, in this
-case a toy horse. The project will involve analyzing consumer survey
-data using conjoint analysis techniques and interpreting the results to
-understand how consumers value different features. In particular, the
-analysis will consider the potential impact of competitors’ responses,
-as well as the costs associated with offering different features,
-including both variable costs and fixed costs.
+The objective of this project is to understand how consumers value different features of a product.  The project will involve analyzing consumer survey data using conjoint analysis techniques and interpreting the results tounderstand how consumers value different features. In particular, the analysis will consider the potential impact of competitors’ responses as well as the costs associated with offering different features, including both variable costs and fixed costs.
+
+## Project Background
+The company is a manufacturer of toy horses, competing with a single rival. Currently, the company offers two 18-inch rocking horses in the racing and glamor styles, both priced at $139.99. Meanwhile, its competitor sells a 26-inch rocking horse in the racing style, also priced at $139.99. The company is currently earning a profit of $96,000, while the competitor is earning $141,000. The company is looking to change its product offering to maximize profits.
+
+To achieve this goal, a survey was conducted among consumers to rank 16 different profiles of toy horses. These profiles varied in terms of price (ranging from $139.99 to $119.99), size (18 inches and 26 inches), motion (rocking and bouncing) and styles (racing and rocking).  Using these data, an analysis will be performed to provide the company with a data driven recommendation.
+
 
 ## Tools Used
-
 - R
 - R Markdown
 
@@ -28,6 +26,10 @@ including both variable costs and fixed costs.
 [A Priori Segmentation](https://github.com/mj8295/Data_Projects/blob/467a88c3704484924407fcd1f28c71f71b500267/Concepts/APrioriSegmentation.md)
 
 [Post-Hoc Segmentation](https://github.com/mj8295/Data_Projects/blob/467a88c3704484924407fcd1f28c71f71b500267/Concepts/PostHocSegmentation.md)
+
+[Disaggergate Choice Model]()
+
+[First Choice Rule]()
 
 ## Workflow
 
@@ -101,16 +103,11 @@ ID = conjointDataDetail[, 1]
 
 ### Part 2: Part-Utility Analysis
 
-This section includes an analysis that calculates the perceived benefits
-of each attribute, known as part-utilities, at the individual level.
-These values will be used in our post-hoc segmentation process and to
-predict the missing ratings in incomplete profiles, resulting in a
-complete set of profile ratings.
+This section includes an analysis that calculates the perceived benefits of each attribute, known as part-utilities, at the individual level. These values will be used in our post-hoc segmentation process and to predict the missing ratings in incomplete profiles, resulting in a complete set of profile ratings.
 
 #### Part 2.1: Calculate sample size
 
-This will be used to help fill out the partworths matrix that will be
-defined later
+This will be used to help fill out the partworths matrix that will be defined later
 
 ``` r
 sampsize = nrow(respondentData)
@@ -614,25 +611,14 @@ This function works by looping over each scenario and:
 2. For each product, make a decision by assigning a value of 1 or 0, with 1 indicating that the product was chosen by the consumer.
 3. Assign the best option to the "choice" list.
 
-After each scenario has been evaluated, the list "choice" will be returned.  Note that in the case of a tie the 1 will be 
+After each scenario has been evaluated, the list "choice" will be returned.  Note that in the case of a tie the 1 will be split evenly among the tied products
 
 ``` r
-# Market simulation based on the scenarios defined above
-
-# simScenatios Arguments:
-#   scen - a list of scenarios, which are vectors that index into data
-#   data - a data.frame containing the rank order information
-#   ... - an argument that accepts anything else and just passes it along
-# Return:
-#   data.frame containing shares with columns corresponding to the columns in the data
-
 simScenarios = function(scen,data,...){ 
   choice = list()
-  # loop over scenarios
   for (k in 1: length(scen)){
     # constructs a subsetted matrix of options
     inmkt = data[, scen[[k]]]
-    # Fills decision as 1 or 0 for all products in subsetted matrix constructed above
     for (i in 1:nrow(inmkt)){
       bestOpts = max(inmkt[i,]) 
     for (j in 1:ncol(inmkt)){
@@ -642,30 +628,18 @@ simScenarios = function(scen,data,...){
       inmkt[i,j] = 0  
       }
   }
-  # will split the 1 evenly if there is a tie
       inmkt[i,] = inmkt[i,]/sum(inmkt[i,])}
-  # assigns the best option to choice
     choice[[k]]=inmkt}
-  # returns the choice from the function
   return(choice)}
 ```
-
-–
-
-shs function is defined here and will determine the market share of each
-scenario
-
+##### Part 6.2.2: Define shs Function
+This function will be used in the simFCShares function to calculate market share
 ``` r
-# assumes that total decisions is market size
-# calculates the market share
 shs = function(decs){
   colSums(decs)/sum(decs)}
 ```
-
-–
-
-simFCShares function is defined here
-
+##### Part 6.2.3: Define simFCShares Function
+Using the simScenarios function and the shs function, simFCShares returns the market share of each product in a given scenario.  This is done by applying the output of the simScenarios function to the shs function.
 ``` r
 simFCShares = function(scen, data){
   #fill decisions to be 0 or 1 for all products
@@ -678,11 +652,10 @@ simFCShares = function(scen, data){
 
 –
 
-simProfit function is defined here
+##### Part 6.2.4: Define simProfit Function
+The simProfit function utilizes the output from the simFCShares function to calculate the expected profit for the company and its competitor. The function returns two lists: the first list contains the profits of the company and the second list contains the profits of the competitor.
 
 ``` r
-# Calculates the expected profit given the share calculated in the simFCShares function (mktshr)
-# Will return a list containing 2 lists. The first list will be a list of our profits and the second list will be a list of our competitor's profits
 simProfit = function(inputmat,scens,mktshr){
    cm = list()
    result = c()
@@ -697,13 +670,9 @@ simProfit = function(inputmat,scens,mktshr){
    
  }
 ```
-
-–
-
-Application of Market Simulation Functions
-
+#### Part 6.3: Apply the Functions
+##### Part 6.3.1: Calculate Contribution Margin
 ``` r
-##Generate profits given market simulation
 for (i in (1:nrow(profilesData))){
   if (profilesData[i, 'size'] == 0 & profilesData[i,'motion']==1){
     vcosts = 33
@@ -759,10 +728,14 @@ profilesData
     ## 15  70.99
     ## 16  54.99
 
+##### Part 6.3.2: Obtain the Market Share
+Use simFCShares and assign the output to a variable which can be used as an argument in the simProfit function.
 ``` r
-# Runs simFCShares function and assignes output to mktshare to be used in simProfit function below
 mktshr = simFCShares(scens,finalratings)
-
+```
+##### Part 6.3.3: Calculate Profit
+The consumer survey results, scenarios, and market share will be used as arguments here.
+```r
 simProfit(finalratings,scens,mktshr)
 ```
 
@@ -789,6 +762,8 @@ simProfit(finalratings,scens,mktshr)
     ## [55] -14794.0667 -11717.8333   -832.7000  21884.1000  -1305.9667  51699.9000
     ## [61]   9815.8000
 
+
+Reorganizing the data can be useful here but not necessary.  Here the scenario that has the maximum profit will be identified.
 ``` r
 profit <- as.data.frame(simProfit(finalratings,scens,mktshr))
 colnames(profit) <- c("profits","competiors")
@@ -797,25 +772,5 @@ which.max(profit$profits)
 
     ## [1] 50
 
-``` r
-# scenario 50 maximize profits
-# scens[[50]] = c(15,3,13,7) 
-```
 
-We choose to go with a scenario where our client offers two different
-horses, profile 3 and profile 15. Even though this does not maximize the
-profit of the client, it leaves enough profit for the competitor that
-the likelihood that they will change is minimized. In this scenario our
-client still receives nearly 200,000 in profit while the competitor
-receives 30,000 in profit. Additionally in the cluster analysis we found
-three distinct clusters. If we introduce three different products then
-there will be 4 different products on the market which means there is a
-good possibility that we will either cannibalize our own sales, or the
-competitor’s product will outperform our own. This is why we recommended
-our client to only offer two products, profile 3 and profile 15.
-
-We chose the scenarios we did based off of our apriori and post-hoc
-segmentation. It would have been unreasonable to test every scenario
-even though that would be the best course of action given unlimited
-computing power. When given a small number of horses to test, we can
-test each combination fairly efficiently.
+Shifting to selling horse profiles 3 and 15 appears to be the best option based on this analysis. Although this strategy does not maximize profit, the potential negative external effects of reducing the competition's profit to nearly zero outweigh the extra profit gained by introducing three product lines. Additionally, introducing three different product lines may lead to unintended consequences, such as limited availability of the horses at retailers. The competitor's profit would drop from $141,000 to $28,000 which may prompt a change in their strategy. This analysis can be re-evaluated to account for the competitor's actions.
