@@ -27,7 +27,7 @@ To achieve this goal, a survey was conducted among consumers to rank 16 differen
 
 [Post-Hoc Segmentation](https://github.com/mj8295/Data_Projects/blob/467a88c3704484924407fcd1f28c71f71b500267/Concepts/PostHocSegmentation.md)
 
-[Disaggergate Choice Model]()
+[Disaggergate Choice Model](https://github.com/mj8295/Data_Projects/blob/9e3789f0c055c002d8e105c3ef3ab32e963458ac/Concepts/Disaggregate_Choice_Model.md)
 
 [First Choice Rule]()
 
