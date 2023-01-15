@@ -1,0 +1,472 @@
+
+
+## Workflow
+### Part 1: Create the Server
+```sql
+CREATE SERVER mobilevisits
+FOREIGN DATA WRAPPER mysql
+OPTIONS (USER 'gba424_student', HOST 'gba424.simon.rochester.edu', PASSWORD 'Student!2020', DATABASE 'mobilevisits');
+```
+
+### Part 2: Create the Database
+```sql
+DROP DATABASE IF EXISTS mobilevisits_fed;
+CREATE DATABASE mobilevisits_fed;
+USE mobilevisits_fed;
+```
+### Part 3: Create Federated and Local Tables
+#### Part 3.1: Create Chains Federated Table
+```sql
+DROP TABLE IF EXISTS chains_fed;
+CREATE TABLE chains_fed(
+	chain varchar(20) NOT NULL,
+    PRIMARY KEY (`chain`)
+)
+ENGINE = FEDERATED
+CONNECTION = 'mobilevisits/chains';
+```
+
+#### Part 3.2: Create Chains Local Table
+```sql
+DROP TABLE IF EXISTS chains_local;
+CREATE TABLE chains_local
+AS
+SELECT * FROM mobilevisits_fed.chains_fed;
+```
+
+#### Part 3.3: Create Users Federated Table
+```sql
+DROP TABLE IF EXISTS users_fed;
+CREATE TABLE users_fed(
+	userID INT NOT NULL,
+    latitude DOUBLE NOT NULL,
+    longitude DOUBLE NOT NULL,
+    PRIMARY KEY (`userID`)
+)
+ENGINE = FEDERATED
+CONNECTION = 'mobilevisits/users';
+```
+
+#### Part 3.4: Create Users Local Table
+```sql
+DROP TABLE IF EXISTS users_local;
+CREATE TABLE users_local
+AS
+SELECT * FROM mobilevisits_fed.users_fed;
+```
+#### Part 3.5: Create Venues Federated Table
+```sql
+DROP TABLE IF EXISTS venues_fed;
+CREATE TABLE venues_fed(
+	venueID INT NOT NULL,
+    chain VARCHAR(20) NOT NULL,
+    latitude DOUBLE NOT NULL,
+    longitude DOUBLE NOT NULL,
+    PRIMARY KEY (`venueID`)
+)
+ENGINE = FEDERATED
+CONNECTION = 'mobilevisits/venues';
+```
+#### Part 3.6: Create Venues Local Table
+```sql
+DROP TABLE IF EXISTS venues_local;
+CREATE TABLE venues_local
+AS
+SELECT * FROM mobilevisits_fed.venues_fed;
+```
+#### Part 3.7: Create Visits Federated Table
+```sql
+DROP TABLE IF EXISTS visits_fed;
+CREATE TABLE visits_fed(
+	userID INT NOT NULL,
+    venueID INT NOT NULL,
+    PRIMARY KEY (`userID`, `venueID`)
+)
+ENGINE = FEDERATED
+CONNECTION = 'mobilevisits/visits';
+```
+#### Part 3.8 Create Visits Local Table
+```sql
+DROP TABLE IF EXISTS visits_local;
+CREATE TABLE visits_local
+AS
+SELECT * FROM mobilevisits_fed.visits_fed;
+```
+-------------------------------------------------------------------------------------
+-- This is a stored function so we can calculate distance in the data warehouse
+```sql
+DROP FUNCTION `CALC_DIST_MILES`;
+DELIMITER ^^
+
+CREATE FUNCTION `CALC_DIST_MILES`(
+	lat_1 FLOAT, lon_1 FLOAT, lat_2 FLOAT, lon_2 FLOAT)
+    RETURNS float
+  NO SQL
+  DETERMINISTIC
+
+BEGIN
+	RETURN 
+		(6371 * 0.621371) * ACOS(
+					COS(RADIANS(lat_1)) *
+                    COS(RADIANS(lat_2)) *
+                    COS(RADIANS(lon_2) - RADIANS(lon_1)) + 
+                    SIN(RADIANS(lat_1)) * SIN(RADIANS(lat_2))
+                    );
+END^^
+DELIMITER ;
+```
+-- Creates the data warehouse that we described in the slides
+```sql
+DROP VIEW data_warehouse;
+CREATE OR REPLACE VIEW data_warehouse AS
+	SELECT dist.userID,
+			dist.chain,
+            frequency,
+            CALC_DIST_MILES(lat_1, lon_1, lat_2, lon_2) AS distance
+    FROM(SELECT vi.userID,
+				vi.venueID,
+				chain,
+				COUNT(vi.userID) AS frequency,
+                u.latitude AS lat_1,
+                u.longitude AS lon_1,
+                ve.latitude AS lat_2,
+                ve.longitude AS lon_2
+	FROM visits_local vi
+		LEFT JOIN users_local u
+			ON vi.userID = u.userID
+		LEFT JOIN venues_local ve
+			ON vi.venueID = ve.venueID
+		GROUP BY userID, venueID) as dist
+ORDER BY dist.userID, chain
+;
+```
+-- Creates customer_detail view which is used for both the Overall Shopping Behaviors Table and the Cross Shopping Table
+```sql
+DROP VIEW customer_detail;
+CREATE OR REPLACE VIEW customer_detail AS
+	SELECT userID,
+			chain,
+			SUM(AbleWare_visits) AS AbleWare_visits,
+            SUM(BuildInc_visits) AS BuildInc_visits,
+            SUM(Collards_visits) AS Collards_visits,
+            SUM(DepotInc_visits) AS DepotInc_visits,
+            SUM(ExcelInc_visits) AS ExcelInc_visits
+    	FROM (SELECT chain,
+					userID,
+					CASE WHEN chain = 'AbleWare' THEN frequency ELSE 0 END AS AbleWare_visits,
+					CASE WHEN chain = 'BuildInc' THEN frequency ELSE 0 END AS BuildInc_visits,
+					CASE WHEN chain = 'Collards' THEN frequency ELSE 0 END AS Collards_visits,
+					CASE WHEN chain = 'DepotInc' THEN frequency ELSE 0 END AS DepotInc_visits,
+					CASE WHEN chain = 'ExcelInc' THEN frequency ELSE 0 END AS ExcelInc_visits
+            FROM data_warehouse dw) AS fr
+GROUP BY userID;
+```
+-- Now that we have all of the general views and data warehouse created we can start working on the tbales that will display the infromation Excel Inc requested 
+
+-- Overall Shopping Behaviors Table
+-- Crates the chain_frequency view used to get the visit and customer counts for the Overall Shopping Behavior Table
+```sql
+DROP VIEW chain_frequency;
+CREATE OR REPLACE VIEW chain_frequency AS
+SELECT chain,
+		visits,
+        customer
+FROM(SELECT chain,
+		SUM(frequency) AS visits,
+		COUNT(DISTINCT(userID)) AS customer
+        FROM data_warehouse
+        GROUP BY chain) AS f;
+```
+-- Crates the customer_detail_loyalty view used to get the loyalty numbers for the Overall Shopping Behavior Table
+```sql
+DROP VIEW customer_detail_loyal;
+CREATE OR REPLACE VIEW customer_detail_loyal AS
+SELECT chain,
+		SUM(loyal) AS loyal_customers
+FROM(SELECT chain,
+			userID,
+			CASE 
+				WHEN AbleWare_visits > 0 AND BuildInc_visits = 0 AND Collards_visits = 0 AND DepotInc_visits = 0 AND ExcelInc_visits = 0 THEN 1
+				WHEN BuildInc_visits > 0 AND AbleWare_visits = 0 AND Collards_visits = 0 AND DepotInc_visits = 0 AND ExcelInc_visits = 0 THEN 1
+				WHEN Collards_visits > 0 AND AbleWare_visits = 0 AND BuildInc_visits = 0 AND DepotInc_visits = 0 AND ExcelInc_visits = 0 THEN 1
+				WHEN DepotInc_visits > 0 AND AbleWare_visits = 0 AND BuildInc_visits = 0 AND Collards_visits = 0 AND ExcelInc_visits = 0 THEN 1
+				WHEN ExcelInc_visits > 0 AND AbleWare_visits = 0 AND BuildInc_visits = 0 AND Collards_visits = 0 AND DepotInc_visits = 0 THEN 1 ELSE 0 END AS loyal
+	FROM(SELECT * FROM customer_detail) AS detail
+	) AS loyal
+GROUP BY chain;
+```
+-- Creates the overall_shopping_behavior view which is the Overall Shopping Behaviors Table
+```sql
+DROP VIEW overall_shopping_behavior;
+CREATE OR REPLACE VIEW overall_shopping_behavior AS
+SELECT cf.chain,
+		visits / (SELECT SUM(visits) FROM chain_frequency) AS visit_share,
+        customer / (SELECT COUNT(DISTINCT(userID)) FROM customer_detail) AS customer_share,
+        loyal_customers / customer AS loyal_customer_percent,
+        loyal_customers / (SELECT SUM(loyal_customers) FROM customer_detail_loyal) AS loyal_share,
+        customer AS total_customers,
+        visits AS total_visits
+FROM chain_frequency cf
+	JOIN customer_detail_loyal cdf
+		ON cf.chain = cdf.chain
+ORDER BY chain;
+SELECT COUNT(DISTINCT(userID)) FROM customer_detail;
+```
+-- Cross Shopping
+-- Creates the cross_shopping_cust view which is used to make the cross shopping tabe
+```sql
+DROP VIEW cross_shopping_cust;
+CREATE OR REPLACE VIEW cross_shopping_cust AS
+SELECT userID,
+		chain
+FROM data_warehouse
+GROUP BY userID, chain
+ORDER BY userID;
+```
+
+-- Joins the tables to form Cross Shopping Table
+```sql
+DROP VIEW cross_shopping;
+CREATE OR REPLACE VIEW cross_shopping AS
+SELECT csc.chain,
+        SUM(AbleWare_visits) / (SUM(AbleWare_visits + BuildInc_visits + Collards_visits + DepotInc_visits + ExcelInc_visits)) AS AbleWare_share,
+        SUM(BuildInc_visits) / (SUM(AbleWare_visits + BuildInc_visits + Collards_visits + DepotInc_visits + ExcelInc_visits)) AS BuildInc_share,
+        SUM(Collards_visits) / (SUM(AbleWare_visits + BuildInc_visits + Collards_visits + DepotInc_visits + ExcelInc_visits)) AS Collards_share,
+        SUM(DepotInc_visits) / (SUM(AbleWare_visits + BuildInc_visits + Collards_visits + DepotInc_visits + ExcelInc_visits)) AS DepotInc_share,
+        SUM(ExcelInc_visits) / (SUM(AbleWare_visits + BuildInc_visits + Collards_visits + DepotInc_visits + ExcelInc_visits)) AS ExcelInc_share
+ FROM cross_shopping_cust csc
+LEFT JOIN customer_detail cd
+ON csc.userID = cd.userID
+GROUP BY chain
+ORDER BY chain;
+```
+
+-- Segmentation tables
+-- View used to get the loyal customers used in 3i & 3ii
+```sql
+CREATE OR REPLACE VIEW customer_detail_loyal_cust AS
+SELECT userID,
+		chain,
+		SUM(loyal) AS loyal_customer
+FROM(SELECT chain,
+			userID,
+			CASE 
+				WHEN AbleWare_visits > 0 AND BuildInc_visits = 0 AND Collards_visits = 0 AND DepotInc_visits = 0 AND ExcelInc_visits = 0 THEN 1
+				WHEN BuildInc_visits > 0 AND AbleWare_visits = 0 AND Collards_visits = 0 AND DepotInc_visits = 0 AND ExcelInc_visits = 0 THEN 1
+				WHEN Collards_visits > 0 AND AbleWare_visits = 0 AND BuildInc_visits = 0 AND DepotInc_visits = 0 AND ExcelInc_visits = 0 THEN 1
+				WHEN DepotInc_visits > 0 AND AbleWare_visits = 0 AND BuildInc_visits = 0 AND Collards_visits = 0 AND ExcelInc_visits = 0 THEN 1
+				WHEN ExcelInc_visits > 0 AND AbleWare_visits = 0 AND BuildInc_visits = 0 AND Collards_visits = 0 AND DepotInc_visits = 0 THEN 1 ELSE 0 END AS loyal
+	FROM(SELECT * FROM customer_detail) AS detail
+	) AS loyal
+GROUP BY userID;
+```
+
+-- Segmentation based on Frequency/customer
+-- Frequent means that the customer has visited the chain more than 2 times in the past year
+```sql
+CREATE OR REPLACE VIEW 3ai_segmentation_frequent_cust AS
+SELECT chain, 
+		sum(frequent) / COUNT(DISTINCT(userID)) AS frequent,
+		sum(nonfrequent) / COUNT(DISTINCT(userID)) AS nonfrequent
+FROM (SELECT userid, 
+			chain, 
+            sum(frequency) AS frequency,
+            CASE WHEN SUM(frequency) > 2 THEN 1 ELSE 0 END AS frequent,
+            CASE WHEN SUM(frequency) <= 2 THEN 1 ELSE 0 END AS nonfrequent
+FROM data_warehouse
+GROUP BY userID, chain) AS I
+GROUP BY chain
+ORDER BY chain;
+```
+-- Segmentation based on Frequency/trips
+-- Frequent means that the customer has visited the chain more than 2 times in the past year
+```sql
+CREATE OR REPLACE VIEW 3aii_segmentation_frequent_trip AS
+SELECT chain, 
+		sum(frequent) / SUM(frequent + nonfrequent) AS frequent,
+		sum(nonfrequent) / SUM(frequent + nonfrequent) AS nonfrequent
+FROM (SELECT userid, 
+			chain, 
+            sum(frequency) AS frequency,
+            CASE WHEN SUM(frequency) > 2 THEN 1 * frequency ELSE 0 END AS frequent,
+            CASE WHEN SUM(frequency) <= 2 THEN 1 * frequency ELSE 0 END AS nonfrequent
+FROM data_warehouse
+GROUP BY userID, chain) AS I
+GROUP BY chain
+ORDER BY chain;
+```
+-- Segmentation based on loyalty/trips
+-- Frequent means that the customer has visited the chain more than 2 times in the past year
+-- loyal means only visit one chain
+```sql
+CREATE OR REPLACE VIEW 3aiii_segmentation_frequent_loyal AS
+SELECT chain, 
+		SUM(CASE WHEN loyal_customer = 1 THEN frequent ELSE 0 END) / COUNT(DISTINCT(userID)) AS frequent_loyal,
+		SUM(CASE WHEN loyal_customer = 1 THEN nonfrequent ELSE 0 END) / COUNT(DISTINCT(userID)) AS nonfrequent_loyal,
+		SUM(CASE WHEN loyal_customer = 0 THEN frequent ELSE 0 END) / COUNT(DISTINCT(userID)) AS frequent_nonloyal,
+		SUM(CASE WHEN loyal_customer = 0 THEN nonfrequent ELSE 0 END) / COUNT(DISTINCT(userID)) AS nonfrequent_nonloyal
+FROM (SELECT dw.userid, 
+			dw.chain, 
+            sum(frequency) AS frequency,
+            CASE WHEN SUM(frequency) > 2 THEN 1 ELSE 0 END AS frequent,
+            CASE WHEN SUM(frequency) <= 2 THEN 1 ELSE 0 END AS nonfrequent,
+            loyal_customer
+FROM data_warehouse dw
+LEFT JOIN customer_detail_loyal_cust cdlc
+	ON dw.userID = cdlc.userID
+GROUP BY dw.userID, dw.chain) AS I
+GROUP BY chain
+ORDER BY chain;
+```
+
+-- Segmentation based on distance (customers)
+-- Close means that the customer lives less than 5 miles away from the venue
+```sql
+CREATE OR REPLACE VIEW 3bi_segmentation_distance_cust AS
+SELECT chain, 
+		sum(far) / COUNT(DISTINCT(userID)) AS far, 
+        sum(close) / COUNT(DISTINCT(userID)) AS close
+FROM(SELECT userid,
+			chain,
+            SUM(frequency) AS frequency,
+            distance,
+            CASE WHEN distance >= 5 THEN COUNT(DISTINCT(userID)) ELSE 0 END AS far,
+            CASE WHEN distance < 5 THEN COUNT(DISTINCT(userID)) ELSE 0 END AS close
+	FROM data_warehouse
+    GROUP BY userid, chain) AS UF
+GROUP BY chain
+ORDER BY chain;
+```
+-- Segmentation based on distance/trips
+-- Close means that the customer lives less than 5 miles away from the venue
+```sql
+CREATE OR REPLACE VIEW 3bii_segmentation_distance_trip AS
+SELECT chain, 
+		sum(far) / SUM(close + far) AS far, 
+        sum(close) / SUM(close + far) AS close
+FROM(SELECT userid,
+			chain,
+            SUM(frequency) AS frequency,
+            distance,
+            CASE WHEN distance >= 5 THEN SUM(frequency) ELSE 0 END AS far,
+            CASE WHEN distance < 5 THEN SUM(frequency) ELSE 0 END AS close
+	FROM data_warehouse
+    GROUP BY userid, chain) AS UF
+GROUP BY chain
+ORDER BY chain;
+```
+-- Segmentation based on distance/trips/loyal
+-- Close means that the customer lives less than 5 miles away from the venue
+-- loyal means only visit one chain
+```sql
+CREATE OR REPLACE VIEW 3biii_segmentation_distance_cust_loyal AS
+SELECT chain, 
+       SUM(CASE WHEN loyal_customer = 1 THEN far ELSE 0 END) / COUNT(DISTINCT(userID)) AS far_loyal,
+       SUM(CASE WHEN loyal_customer = 1 THEN close ELSE 0 END) / COUNT(DISTINCT(userID)) AS close_loyal,
+       SUM(CASE WHEN loyal_customer = 0 THEN far ELSE 0 END) / COUNT(DISTINCT(userID)) AS far_nonloyal,
+       SUM(CASE WHEN loyal_customer = 0 THEN close ELSE 0 END) / COUNT(DISTINCT(userID)) AS close_nonloyal       
+FROM(SELECT dw.userid,
+			dw.chain,
+            SUM(frequency) AS frequency,
+            distance,
+            CASE WHEN distance >= 5 THEN COUNT(DISTINCT(dw.userID)) ELSE 0 END AS far,
+            CASE WHEN distance < 5 THEN COUNT(DISTINCT(dw.userID)) ELSE 0 END AS close,
+            loyal_customer
+	FROM data_warehouse dw
+		LEFT JOIN customer_detail_loyal_cust cdlc
+	ON dw.userID = cdlc.userID
+    GROUP BY dw.userid, dw.chain) AS UF
+GROUP BY chain
+ORDER BY chain;
+```
+-- Segmentation based on loyalty/customer
+```sql
+CREATE OR REPLACE VIEW 3ci_segmentation_loyal_cust AS
+SELECT chain,
+       SUM(CASE WHEN loyal = 1 THEN 1 ELSE 0 END) / COUNT(loyal) AS loyal,
+       SUM(CASE WHEN loyal = 0 THEN 1 ELSE 0 END) / COUNT(loyal) AS non_loyal
+FROM(SELECT dw.userID,
+			dw.chain,
+			CASE
+				WHEN AbleWare_visits > 0 AND BuildInc_visits = 0 AND Collards_visits = 0 AND DepotInc_visits = 0 AND ExcelInc_visits = 0 THEN 1
+				WHEN BuildInc_visits > 0 AND AbleWare_visits = 0 AND Collards_visits = 0 AND DepotInc_visits = 0 AND ExcelInc_visits = 0 THEN 1
+				WHEN Collards_visits > 0 AND AbleWare_visits = 0 AND BuildInc_visits = 0 AND DepotInc_visits = 0 AND ExcelInc_visits = 0 THEN 1
+				WHEN DepotInc_visits > 0 AND AbleWare_visits = 0 AND BuildInc_visits = 0 AND Collards_visits = 0 AND ExcelInc_visits = 0 THEN 1
+				WHEN ExcelInc_visits > 0 AND AbleWare_visits = 0 AND BuildInc_visits = 0 AND Collards_visits = 0 AND DepotInc_visits = 0 THEN 1 ELSE 0 END AS loyal
+	FROM data_warehouse dw
+		JOIN customer_detail cd
+			ON dw.userID = cd.userID
+	GROUP BY userID, chain
+	ORDER BY userID) AS L
+    GROUP BY chain
+    ORDER BY chain;
+```
+-- Segmentation based on loyalty/trips
+```sql
+CREATE OR REPLACE VIEW 3cii_segmentation_loyal_trip AS
+SELECT chain,
+       SUM(loyal) / SUM(loyal + non_loyal) AS loyal,
+       SUM(non_loyal) / SUM(loyal + non_loyal) AS non_loyal
+FROM(SELECT dw.userID,
+			dw.chain,
+			CASE
+				WHEN AbleWare_visits > 0 AND BuildInc_visits = 0 AND Collards_visits = 0 AND DepotInc_visits = 0 AND ExcelInc_visits = 0 THEN 1 * frequency
+				WHEN BuildInc_visits > 0 AND AbleWare_visits = 0 AND Collards_visits = 0 AND DepotInc_visits = 0 AND ExcelInc_visits = 0 THEN 1 * frequency
+				WHEN Collards_visits > 0 AND AbleWare_visits = 0 AND BuildInc_visits = 0 AND DepotInc_visits = 0 AND ExcelInc_visits = 0 THEN 1 * frequency
+				WHEN DepotInc_visits > 0 AND AbleWare_visits = 0 AND BuildInc_visits = 0 AND Collards_visits = 0 AND ExcelInc_visits = 0 THEN 1 * frequency
+				WHEN ExcelInc_visits > 0 AND AbleWare_visits = 0 AND BuildInc_visits = 0 AND Collards_visits = 0 AND DepotInc_visits = 0 THEN 1 * frequency ELSE 0 END AS loyal,
+			CASE
+				WHEN AbleWare_visits > 0 AND (BuildInc_visits > 0 OR Collards_visits > 0 OR DepotInc_visits > 0 OR ExcelInc_visits > 0) THEN 1 * frequency
+				WHEN BuildInc_visits > 0 AND (AbleWare_visits > 0 OR Collards_visits > 0 OR DepotInc_visits > 0 OR ExcelInc_visits > 0) THEN 1 * frequency
+				WHEN Collards_visits > 0 AND (AbleWare_visits > 0 OR BuildInc_visits > 0 OR DepotInc_visits > 0 OR ExcelInc_visits > 0) THEN 1 * frequency
+				WHEN DepotInc_visits > 0 AND (AbleWare_visits > 0 OR BuildInc_visits > 0 OR Collards_visits > 0 OR ExcelInc_visits > 0) THEN 1 * frequency
+				WHEN ExcelInc_visits > 0 AND (AbleWare_visits > 0 OR BuildInc_visits > 0 OR Collards_visits > 0 OR DepotInc_visits > 0) THEN 1 * frequency ELSE 0 END AS non_loyal
+	FROM data_warehouse dw
+		JOIN customer_detail cd
+			ON dw.userID = cd.userID
+	GROUP BY userID, chain
+	ORDER BY userID) AS L
+    GROUP BY chain
+    ORDER BY chain;
+```
+-- Cross shopping Segmentation based on frequency and loyalty
+-- Loyal means only visit one chain and frequent means more than two visits to same chain
+```sql
+CREATE OR REPLACE VIEW 3d_segmentation_loyal_frequent AS
+SELECT	chain,
+        SUM(AbleWare_visits) / (SUM(AbleWare_visits + BuildInc_visits + Collards_visits + DepotInc_visits + ExcelInc_visits)) AS AbleWare_share,
+        SUM(BuildInc_visits) / (SUM(AbleWare_visits + BuildInc_visits + Collards_visits + DepotInc_visits + ExcelInc_visits)) AS BuildInc_share,
+        SUM(Collards_visits) / (SUM(AbleWare_visits + BuildInc_visits + Collards_visits + DepotInc_visits + ExcelInc_visits)) AS Collards_share,
+        SUM(DepotInc_visits) / (SUM(AbleWare_visits + BuildInc_visits + Collards_visits + DepotInc_visits + ExcelInc_visits)) AS DepotInc_share,
+        SUM(ExcelInc_visits) / (SUM(AbleWare_visits + BuildInc_visits + Collards_visits + DepotInc_visits + ExcelInc_visits)) AS ExcelInc_share
+FROM(SELECT userID,
+		chain,
+        CASE WHEN loyal = 0 AND frequent = 1 THEN AbleWare_visits ELSE 0 END AS AbleWare_visits,
+        CASE WHEN loyal = 0 AND frequent = 1 THEN BuildInc_visits ELSE 0 END AS BuildInc_visits,
+        CASE WHEN loyal = 0 AND frequent = 1 THEN Collards_visits ELSE 0 END AS Collards_visits,
+        CASE WHEN loyal = 0 AND frequent = 1 THEN DepotInc_visits ELSE 0 END AS DepotInc_visits,
+        CASE WHEN loyal = 0 AND frequent = 1 THEN ExcelInc_visits ELSE 0 END AS ExcelInc_visits
+FROM(SELECT dw.userID,
+			dw.chain,
+			SUM(dw.frequency) AS frequency,
+			CASE 
+				WHEN AbleWare_visits > 0 AND BuildInc_visits = 0 AND Collards_visits = 0 AND DepotInc_visits = 0 AND ExcelInc_visits = 0 THEN 1
+				WHEN BuildInc_visits > 0 AND AbleWare_visits = 0 AND Collards_visits = 0 AND DepotInc_visits = 0 AND ExcelInc_visits = 0 THEN 1
+				WHEN Collards_visits > 0 AND AbleWare_visits = 0 AND BuildInc_visits = 0 AND DepotInc_visits = 0 AND ExcelInc_visits = 0 THEN 1
+				WHEN DepotInc_visits > 0 AND AbleWare_visits = 0 AND BuildInc_visits = 0 AND Collards_visits = 0 AND ExcelInc_visits = 0 THEN 1
+				WHEN ExcelInc_visits > 0 AND AbleWare_visits = 0 AND BuildInc_visits = 0 AND Collards_visits = 0 AND DepotInc_visits = 0 THEN 1 ELSE 0 END AS loyal,
+			CASE WHEN SUM(frequency) > 2 THEN 1 ELSE 0 END AS frequent,
+            AbleWare_visits,
+            BuildInc_visits,
+            Collards_visits,
+            DepotInc_visits,
+            ExcelInc_visits
+	FROM data_warehouse dw
+		LEFT JOIN customer_detail cd
+			ON dw.userID = cd.userID
+	GROUP BY userID, chain
+	ORDER BY userID) as LF
+    GROUP BY userID, chain) AS p
+    GROUP BY chain
+    ORDER BY chain;
+```
