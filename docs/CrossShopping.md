@@ -1,4 +1,27 @@
+# Cross Shopping Analysis
+## Objective
+The overarching objective of this project is to develop a data product that allows for regular data updated to measure consumer shopping behavior.
 
+
+This project is designed to have a technical backend that is able to effectively and efficiently manipulate data which can then be loaded into Excel to allow for less technically trained stakeholders to analyze the data further.
+
+## Project Background
+The company, Excel Inc. a home improvement store, has four competitors that it wants to compare itself to.  Excel Inc. hired a consultant to provide a large sample of mobile devices linked to individuals enabling them to obtain an individuals latitude and longitude.  The consultant is able to then provide a data set of consumers that contains visit information that links customers to the five home improvement stores in the area.
+
+Using this data Excel Inc. wants to analyze the behavior of its customers so they can:
+1. Better target their customers
+2. Identify its biggest competitor
+3. Identify its biggest competitor
+4. Measure how loyal its customers are
+
+
+## Tools Used
+- SQL
+- Excel
+
+## Concepts Used
+- Cross Shopping Analysis
+- Geospacial Analysis
 
 ## Workflow
 ### Part 1: Create the Server
@@ -92,8 +115,9 @@ CREATE TABLE visits_local
 AS
 SELECT * FROM mobilevisits_fed.visits_fed;
 ```
--------------------------------------------------------------------------------------
--- This is a stored function so we can calculate distance in the data warehouse
+### Part 4: Create Functions
+CALC_DIST_MILES Function will be created to perform the analysis on how close the company's customers are located to it
+
 ```sql
 DROP FUNCTION `CALC_DIST_MILES`;
 DELIMITER ^^
@@ -115,7 +139,10 @@ BEGIN
 END^^
 DELIMITER ;
 ```
--- Creates the data warehouse that we described in the slides
+### Part 5: Create Views
+
+#### Part 5.1: Create the Data Warehouse View
+
 ```sql
 DROP VIEW data_warehouse;
 CREATE OR REPLACE VIEW data_warehouse AS
