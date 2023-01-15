@@ -29,8 +29,6 @@ To achieve this goal, a survey was conducted among consumers to rank 16 differen
 
 [Disaggergate Choice Model](https://github.com/mj8295/Data_Projects/blob/9e3789f0c055c002d8e105c3ef3ab32e963458ac/Concepts/Disaggregate_Choice_Model.md)
 
-[First Choice Rule]()
-
 ## Workflow
 
 ### Part 0: Initial Setup
@@ -166,14 +164,7 @@ finalratings = matrix(round(ifelse(is.na(ratings),pratings,ratings)),ncol = 16,b
 
 ### Part 3: Post-Hoc Segmentation
 
-In this section, cluster analysis is used on the part-utilities,
-including the constant defined in part 2, to identify the optimal
-post-hoc segmentation scheme. Post-hoc segmentation involves analyzing
-data to identify segments after it has been collected, as opposed to
-a-priori segmentation where segments are identified before the analysis
-process. This analysis will generate several visualizations to help us
-determine the unique profiles and optimal number of clusters that make
-up the segments.
+In this section, cluster analysis is used on the part-utilities, including the constant defined in part 2, to identify the optimal post-hoc segmentation scheme. Post-hoc segmentation involves analyzing data to identify segments after it has been collected, as opposed to a-priori segmentation where segments are identified before the analysis process. This analysis will generate several visualizations to assist in determining the unique profiles and optimal number of clusters that make up the segments.
 
 #### Part 3.1: Create the clustTest function
 
@@ -184,9 +175,7 @@ This function will take the following arguments:
 - iter.max - the max iterations for clustering algorithms to use 
 - nstart - the number of starting points to consider
 
-The function is designed to yield a list of weighted sum of squares and
-the pamk output including optimal number of clusters to create
-visualizations need to print tmp
+The function is designed to yield a list of weighted sum of squares and the pamk output including optimal number of clusters to create visualizations need to print tmp
 
 ``` r
 clustTest = function(toClust,print=TRUE,scale=TRUE,maxClusts=15,seed=12345,nstart=20,iter.max=100){
@@ -288,7 +277,6 @@ Apply the functions created in step 3 to analyze the output visualizations and d
 
 #### Part 4.1: Elbow Chart Analysis
 ``` r
-# set random number seed before doing cluster analysis so results are constant
 set.seed(123) 
 
 toClust = partworths
