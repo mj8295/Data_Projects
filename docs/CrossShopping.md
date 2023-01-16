@@ -210,7 +210,7 @@ FROM(SELECT chain,
 	FROM data_warehouse
 	GROUP BY chain) AS f;
 ```
-#### Part 6.2: Create the customer_detail_loyal View
+##### Part 6.1.2: Create the customer_detail_loyal View
 This view will calculate the customer loyalty numbers for the Overall Shopping Behavior Table
 ```sql
 DROP VIEW customer_detail_loyal;
@@ -229,6 +229,7 @@ FROM(SELECT chain,
 	) AS loyal
 GROUP BY chain;
 ```
+##### Part 6.1.3: Create overall_shopping_behavior View
 -- Creates the overall_shopping_behavior view which is the Overall Shopping Behaviors Table
 ```sql
 DROP VIEW overall_shopping_behavior;
@@ -246,8 +247,9 @@ FROM chain_frequency cf
 ORDER BY chain;
 SELECT COUNT(DISTINCT(userID)) FROM customer_detail;
 ```
--- Cross Shopping
--- Creates the cross_shopping_cust view which is used to make the cross shopping tabe
+#### Part 6.2: Create Cross Shopping Table
+##### Part 6.2.1: Create cross_shopping_cust View
+This view will be used to which is used to make the cross shopping tabe.  This view will organize the data to be further manipulated in another view.
 ```sql
 DROP VIEW cross_shopping_cust;
 CREATE OR REPLACE VIEW cross_shopping_cust AS
@@ -258,7 +260,8 @@ GROUP BY userID, chain
 ORDER BY userID;
 ```
 
--- Joins the tables to form Cross Shopping Table
+##### Part 6.2.2: Create cross_shopping View
+This will create a table that contains the share of customers that each chain has.  The data in this view is derived from the cross_shopping_cust view and customer_detail view
 ```sql
 DROP VIEW cross_shopping;
 CREATE OR REPLACE VIEW cross_shopping AS
