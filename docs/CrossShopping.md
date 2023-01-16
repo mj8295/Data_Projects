@@ -142,7 +142,7 @@ DELIMITER ;
 ### Part 5: Create Views
 
 #### Part 5.1: Create the Data Warehouse View
-
+This will contain the data that is needed for the analysis.  All of the tables will be directly or indirectly built off of this view
 ```sql
 DROP VIEW data_warehouse;
 CREATE OR REPLACE VIEW data_warehouse AS
@@ -167,7 +167,10 @@ CREATE OR REPLACE VIEW data_warehouse AS
 ORDER BY dist.userID, chain
 ;
 ```
--- Creates customer_detail view which is used for both the Overall Shopping Behaviors Table and the Cross Shopping Table
+#### Part 5.2: Create the Customer Detail View
+This will be used to build both the Overall Shopping Behaviors Table and the Cross Shopping Table.  This view uses the data from the data warehouse view.
+
+This view is created by summing the total visits to each chain by each customer. 
 ```sql
 DROP VIEW customer_detail;
 CREATE OR REPLACE VIEW customer_detail AS
@@ -188,10 +191,13 @@ CREATE OR REPLACE VIEW customer_detail AS
 	FROM data_warehouse dw) AS fr
 GROUP BY userID;
 ```
--- Now that we have all of the general views and data warehouse created we can start working on the tbales that will display the infromation Excel Inc requested 
+### Part 6: Creating the Calculated Tables
+Now that the general views have been created, the analysis of the data can commence.
 
--- Overall Shopping Behaviors Table
--- Crates the chain_frequency view used to get the visit and customer counts for the Overall Shopping Behavior Table
+#### Part 6.1: Create Overall Shopping Behaviors Table
+##### Part 6.1.1 Create the chain_frequency View
+
+This view will calculate the visit and customer counts for the Overall Shopping Behavior Table
 ```sql
 DROP VIEW chain_frequency;
 CREATE OR REPLACE VIEW chain_frequency AS
@@ -204,7 +210,8 @@ FROM(SELECT chain,
 	FROM data_warehouse
 	GROUP BY chain) AS f;
 ```
--- Crates the customer_detail_loyalty view used to get the loyalty numbers for the Overall Shopping Behavior Table
+#### Part 6.2: Create the customer_detail_loyal View
+This view will calculate the customer loyalty numbers for the Overall Shopping Behavior Table
 ```sql
 DROP VIEW customer_detail_loyal;
 CREATE OR REPLACE VIEW customer_detail_loyal AS
