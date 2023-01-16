@@ -278,8 +278,9 @@ GROUP BY chain
 ORDER BY chain;
 ```
 
--- Segmentation tables
--- View used to get the loyal customers used in 3i & 3ii
+#### Part 6.3: Create Segmentation Tables
+##### Part 6.3.1: Identify the Loyal Customers
+This view will identify the customers who are defined as being loyal.  Loyal will be defined as the customer only shops at that chain.
 ```sql
 CREATE OR REPLACE VIEW customer_detail_loyal_cust AS
 SELECT userID,
@@ -298,8 +299,10 @@ FROM(SELECT chain,
 GROUP BY userID;
 ```
 
--- Segmentation based on Frequency/customer
--- Frequent means that the customer has visited the chain more than 2 times in the past year
+##### Part 6.3.2: Identify Customers Defined as Frequent
+Frequent means that the customer has visited the chain more than 2 times in the past year.
+
+This is different from the next table (Part 6.3.3) as it will simply flag the frequent customers where as the next table will calculate the percent of customers at a given chain that are frequent.
 ```sql
 CREATE OR REPLACE VIEW 3ai_segmentation_frequent_cust AS
 SELECT chain, 
@@ -315,8 +318,9 @@ GROUP BY userID, chain) AS I
 GROUP BY chain
 ORDER BY chain;
 ```
--- Segmentation based on Frequency/trips
--- Frequent means that the customer has visited the chain more than 2 times in the past year
+
+##### Part 6.3.3: Calculate Proportion of Frequent Customers at Each Chain
+
 ```sql
 CREATE OR REPLACE VIEW 3aii_segmentation_frequent_trip AS
 SELECT chain, 
@@ -332,9 +336,8 @@ GROUP BY userID, chain) AS I
 GROUP BY chain
 ORDER BY chain;
 ```
--- Segmentation based on loyalty/trips
--- Frequent means that the customer has visited the chain more than 2 times in the past year
--- loyal means only visit one chain
+##### Part 6.3.3: Identify the Frequent and Loyal Customers at Each Chain
+Here the date_warehouse and customer_detail_loyal_cust views will be joined together to form the desired output.
 ```sql
 CREATE OR REPLACE VIEW 3aiii_segmentation_frequent_loyal AS
 SELECT chain, 
@@ -356,8 +359,8 @@ GROUP BY chain
 ORDER BY chain;
 ```
 
--- Segmentation based on distance (customers)
--- Close means that the customer lives less than 5 miles away from the venue
+##### Part 6.3.4: Identify the Customers Defined as Close for Each Chain
+Close means that the customer lives less than 5 miles away from the venue
 ```sql
 CREATE OR REPLACE VIEW 3bi_segmentation_distance_cust AS
 SELECT chain, 
@@ -374,8 +377,7 @@ FROM(SELECT userid,
 GROUP BY chain
 ORDER BY chain;
 ```
--- Segmentation based on distance/trips
--- Close means that the customer lives less than 5 miles away from the venue
+##### Part 6.3.5: Calculate the Proportion of Customers who are Defined as Being Close for Each Chain
 ```sql
 CREATE OR REPLACE VIEW 3bii_segmentation_distance_trip AS
 SELECT chain, 
@@ -392,9 +394,7 @@ FROM(SELECT userid,
 GROUP BY chain
 ORDER BY chain;
 ```
--- Segmentation based on distance/trips/loyal
--- Close means that the customer lives less than 5 miles away from the venue
--- loyal means only visit one chain
+##### Part 6.3.6: Calculate the Proportion of Customers who are Defined as Being Close and Loyal for Each Chain
 ```sql
 CREATE OR REPLACE VIEW 3biii_segmentation_distance_cust_loyal AS
 SELECT chain, 
@@ -416,7 +416,7 @@ FROM(SELECT dw.userid,
 GROUP BY chain
 ORDER BY chain;
 ```
--- Segmentation based on loyalty/customer
+##### Part 6.3.7: Calculate the Proportional Share of Customers who are Defined as Being Loyal for Each Chain
 ```sql
 CREATE OR REPLACE VIEW 3ci_segmentation_loyal_cust AS
 SELECT chain,
@@ -438,7 +438,7 @@ FROM(SELECT dw.userID,
     GROUP BY chain
     ORDER BY chain;
 ```
--- Segmentation based on loyalty/trips
+##### Part 6.3.8: Calculate the Proportion of Customers at Each Chain who are Defined as Loyal for Each Chain
 ```sql
 CREATE OR REPLACE VIEW 3cii_segmentation_loyal_trip AS
 SELECT chain,
@@ -466,7 +466,7 @@ FROM(SELECT dw.userID,
     GROUP BY chain
     ORDER BY chain;
 ```
--- Cross shopping Segmentation based on frequency and loyalty
+##### Part 6.3.8: Calculate the Proportion of Customers at Each Chain who are Defined as Loyal and frequent for Each Chain
 -- Loyal means only visit one chain and frequent means more than two visits to same chain
 ```sql
 CREATE OR REPLACE VIEW 3d_segmentation_loyal_frequent AS
