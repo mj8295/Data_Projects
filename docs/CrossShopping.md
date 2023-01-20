@@ -336,7 +336,7 @@ GROUP BY userID, chain) AS I
 GROUP BY chain
 ORDER BY chain;
 ```
-##### Part 6.3.3: Identify the Frequent and Loyal Customers at Each Chain
+##### Part 6.3.4: Identify the Frequent and Loyal Customers at Each Chain
 Here the date_warehouse and customer_detail_loyal_cust views will be joined together to form the desired output.
 ```sql
 CREATE OR REPLACE VIEW 3aiii_segmentation_frequent_loyal AS
@@ -359,7 +359,7 @@ GROUP BY chain
 ORDER BY chain;
 ```
 
-##### Part 6.3.4: Identify the Customers Defined as Close for Each Chain
+##### Part 6.3.5: Identify the Customers Defined as Close for Each Chain
 Close means that the customer lives less than 5 miles away from the venue
 ```sql
 CREATE OR REPLACE VIEW 3bi_segmentation_distance_cust AS
@@ -377,7 +377,7 @@ FROM(SELECT userid,
 GROUP BY chain
 ORDER BY chain;
 ```
-##### Part 6.3.5: Calculate the Proportion of Customers who are Defined as Being Close for Each Chain
+##### Part 6.3.6: Calculate the Proportion of Customers who are Defined as Being Close for Each Chain
 ```sql
 CREATE OR REPLACE VIEW 3bii_segmentation_distance_trip AS
 SELECT chain, 
@@ -394,7 +394,7 @@ FROM(SELECT userid,
 GROUP BY chain
 ORDER BY chain;
 ```
-##### Part 6.3.6: Calculate the Proportion of Customers who are Defined as Being Close and Loyal for Each Chain
+##### Part 6.3.7: Calculate the Proportion of Customers who are Defined as Being Close and Loyal for Each Chain
 ```sql
 CREATE OR REPLACE VIEW 3biii_segmentation_distance_cust_loyal AS
 SELECT chain, 
@@ -416,7 +416,7 @@ FROM(SELECT dw.userid,
 GROUP BY chain
 ORDER BY chain;
 ```
-##### Part 6.3.7: Calculate the Proportional Share of Customers who are Defined as Being Loyal for Each Chain
+##### Part 6.3.8: Calculate the Proportional Share of Customers who are Defined as Being Loyal for Each Chain
 ```sql
 CREATE OR REPLACE VIEW 3ci_segmentation_loyal_cust AS
 SELECT chain,
@@ -438,7 +438,7 @@ FROM(SELECT dw.userID,
     GROUP BY chain
     ORDER BY chain;
 ```
-##### Part 6.3.8: Calculate the Proportion of Customers at Each Chain who are Defined as Loyal for Each Chain
+##### Part 6.3.9: Calculate the Proportion of Customers at Each Chain who are Defined as Loyal for Each Chain
 ```sql
 CREATE OR REPLACE VIEW 3cii_segmentation_loyal_trip AS
 SELECT chain,
@@ -466,7 +466,7 @@ FROM(SELECT dw.userID,
     GROUP BY chain
     ORDER BY chain;
 ```
-##### Part 6.3.8: Calculate the Proportion of Customers at Each Chain who are Defined as Loyal and frequent for Each Chain
+##### Part 6.3.10: Calculate the Proportion of Customers at Each Chain who are Defined as Loyal and frequent for Each Chain
 ```sql
 CREATE OR REPLACE VIEW 3d_segmentation_loyal_frequent AS
 SELECT	chain,
