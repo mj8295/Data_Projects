@@ -467,7 +467,6 @@ FROM(SELECT dw.userID,
     ORDER BY chain;
 ```
 ##### Part 6.3.8: Calculate the Proportion of Customers at Each Chain who are Defined as Loyal and frequent for Each Chain
--- Loyal means only visit one chain and frequent means more than two visits to same chain
 ```sql
 CREATE OR REPLACE VIEW 3d_segmentation_loyal_frequent AS
 SELECT	chain,
