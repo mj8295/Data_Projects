@@ -38,6 +38,7 @@ CREATE DATABASE mobilevisits_fed;
 USE mobilevisits_fed;
 ```
 ### Part 3: Create Federated and Local Tables
+Each table will be built twice here, once as a federated table and once as a local table.  The reason this is a step that needs to be taken is because the federated table interacts with the server directly resulting in a load being placed on the hardware resources each time that table is used.  To get around this poblem, the tables will also be built locally.
 #### Part 3.1: Create Chains Federated Table
 ```sql
 DROP TABLE IF EXISTS chains_fed;
@@ -56,6 +57,7 @@ CREATE TABLE chains_local
 AS
 SELECT * FROM mobilevisits_fed.chains_fed;
 ```
+The tables built in Part 3.1 and 3.2 will yield the following structure:
 
 #### Part 3.3: Create Users Federated Table
 ```sql
@@ -69,7 +71,6 @@ CREATE TABLE users_fed(
 ENGINE = FEDERATED
 CONNECTION = 'mobilevisits/users';
 ```
-
 #### Part 3.4: Create Users Local Table
 ```sql
 DROP TABLE IF EXISTS users_local;
@@ -77,6 +78,8 @@ CREATE TABLE users_local
 AS
 SELECT * FROM mobilevisits_fed.users_fed;
 ```
+The tables built in Part 3.3 and 3.4 will yield the following structure:
+
 #### Part 3.5: Create Venues Federated Table
 ```sql
 DROP TABLE IF EXISTS venues_fed;
@@ -97,6 +100,8 @@ CREATE TABLE venues_local
 AS
 SELECT * FROM mobilevisits_fed.venues_fed;
 ```
+The tables built in Part 3.5 and 3.6 will yield the following structure:
+
 #### Part 3.7: Create Visits Federated Table
 ```sql
 DROP TABLE IF EXISTS visits_fed;
@@ -115,6 +120,9 @@ CREATE TABLE visits_local
 AS
 SELECT * FROM mobilevisits_fed.visits_fed;
 ```
+The tables built in Part 3.7 and 3.8 will yield the following structure:
+
+
 ### Part 4: Create Functions
 CALC_DIST_MILES Function will be created to perform the analysis on how close the company's customers are located to it
 
