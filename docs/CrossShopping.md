@@ -39,6 +39,9 @@ USE mobilevisits_fed;
 ```
 ### Part 3: Create Federated and Local Tables
 Each table will be built twice here, once as a federated table and once as a local table.  The reason this is a step that needs to be taken is because the federated table interacts with the server directly resulting in a load being placed on the hardware resources each time that table is used.  To get around this poblem, the tables will also be built locally.
+
+
+The tables that are created here are stored in the federated database "mobilevisits" referenced in the OPTIONS argument in Part 1.  The below code will define these tables so they can be used later to build different tables and views.
 #### Part 3.1: Create Chains Federated Table
 ```sql
 DROP TABLE IF EXISTS chains_fed;
@@ -148,9 +151,10 @@ END^^
 DELIMITER ;
 ```
 ### Part 5: Create Views
+A view is a virtual table defined by a query. It is similar to a table in that it contains a set of named columns and data in the rows. However, the data in a view is not stored in the database. This allows for flexibility in the structure of the view and allows users to access the data without requiring read and write permissions to the database, increasing security and minimizing the risk of data corruption or loss.
 
 #### Part 5.1: Create the Data Warehouse View
-This will contain the data that is needed for the analysis.  All of the tables will be directly or indirectly built off of this view
+This will contain the data that is needed for the analysis.  All of the tables will be directly or indirectly built off of this view.
 ```sql
 DROP VIEW data_warehouse;
 CREATE OR REPLACE VIEW data_warehouse AS
