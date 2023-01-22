@@ -313,124 +313,7 @@ FROM(SELECT chain,
 GROUP BY userID;
 ```
 
-##### Part 6.3.2: Identify Customers Defined as Frequent
-Frequent means that the customer has visited the chain more than 2 times in the past year.
-
-This is different from the next table (Part 6.3.3) as it will simply flag the frequent customers where as the next table will calculate the percent of customers at a given chain that are frequent.
-```sql
-CREATE OR REPLACE VIEW 3ai_segmentation_frequent_cust AS
-SELECT chain, 
-	sum(frequent) / COUNT(DISTINCT(userID)) AS frequent,
-	sum(nonfrequent) / COUNT(DISTINCT(userID)) AS nonfrequent
-FROM (SELECT userid, 
-	chain, 
-	sum(frequency) AS frequency,
-	CASE WHEN SUM(frequency) > 2 THEN 1 ELSE 0 END AS frequent,
-	CASE WHEN SUM(frequency) <= 2 THEN 1 ELSE 0 END AS nonfrequent
-FROM data_warehouse
-GROUP BY userID, chain) AS I
-GROUP BY chain
-ORDER BY chain;
-```
-
-##### Part 6.3.3: Calculate Proportion of Frequent Customers at Each Chain
-
-```sql
-CREATE OR REPLACE VIEW 3aii_segmentation_frequent_trip AS
-SELECT chain, 
-	sum(frequent) / SUM(frequent + nonfrequent) AS frequent,
-	sum(nonfrequent) / SUM(frequent + nonfrequent) AS nonfrequent
-FROM (SELECT userid, 
-	chain, 
-	sum(frequency) AS frequency,
-	CASE WHEN SUM(frequency) > 2 THEN 1 * frequency ELSE 0 END AS frequent,
-	CASE WHEN SUM(frequency) <= 2 THEN 1 * frequency ELSE 0 END AS nonfrequent
-FROM data_warehouse
-GROUP BY userID, chain) AS I
-GROUP BY chain
-ORDER BY chain;
-```
-##### Part 6.3.4: Identify the Frequent and Loyal Customers at Each Chain
-Here the date_warehouse and customer_detail_loyal_cust views will be joined together to form the desired output.
-```sql
-CREATE OR REPLACE VIEW 3aiii_segmentation_frequent_loyal AS
-SELECT chain, 
-	SUM(CASE WHEN loyal_customer = 1 THEN frequent ELSE 0 END) / COUNT(DISTINCT(userID)) AS frequent_loyal,
-	SUM(CASE WHEN loyal_customer = 1 THEN nonfrequent ELSE 0 END) / COUNT(DISTINCT(userID)) AS nonfrequent_loyal,
-	SUM(CASE WHEN loyal_customer = 0 THEN frequent ELSE 0 END) / COUNT(DISTINCT(userID)) AS frequent_nonloyal,
-	SUM(CASE WHEN loyal_customer = 0 THEN nonfrequent ELSE 0 END) / COUNT(DISTINCT(userID)) AS nonfrequent_nonloyal
-FROM (SELECT dw.userid, 
-		dw.chain, 
-		sum(frequency) AS frequency,
-		CASE WHEN SUM(frequency) > 2 THEN 1 ELSE 0 END AS frequent,
-		CASE WHEN SUM(frequency) <= 2 THEN 1 ELSE 0 END AS nonfrequent,
-		loyal_customer
-FROM data_warehouse dw
-LEFT JOIN customer_detail_loyal_cust cdlc
-	ON dw.userID = cdlc.userID
-GROUP BY dw.userID, dw.chain) AS I
-GROUP BY chain
-ORDER BY chain;
-```
-
-##### Part 6.3.5: Identify the Customers Defined as Close for Each Chain
-Close means that the customer lives less than 5 miles away from the venue
-```sql
-CREATE OR REPLACE VIEW 3bi_segmentation_distance_cust AS
-SELECT chain, 
-	sum(far) / COUNT(DISTINCT(userID)) AS far, 
-        sum(close) / COUNT(DISTINCT(userID)) AS close
-FROM(SELECT userid,
-		chain,
-		SUM(frequency) AS frequency,
-		distance,
-		CASE WHEN distance >= 5 THEN COUNT(DISTINCT(userID)) ELSE 0 END AS far,
-		CASE WHEN distance < 5 THEN COUNT(DISTINCT(userID)) ELSE 0 END AS close
-	FROM data_warehouse
-    GROUP BY userid, chain) AS UF
-GROUP BY chain
-ORDER BY chain;
-```
-##### Part 6.3.6: Calculate the Proportion of Customers who are Defined as Being Close for Each Chain
-```sql
-CREATE OR REPLACE VIEW 3bii_segmentation_distance_trip AS
-SELECT chain, 
-	sum(far) / SUM(close + far) AS far, 
-        sum(close) / SUM(close + far) AS close
-FROM(SELECT userid,
-		chain,
-		SUM(frequency) AS frequency,
-		distance,
-		CASE WHEN distance >= 5 THEN SUM(frequency) ELSE 0 END AS far,
-		CASE WHEN distance < 5 THEN SUM(frequency) ELSE 0 END AS close
-	FROM data_warehouse
-    GROUP BY userid, chain) AS UF
-GROUP BY chain
-ORDER BY chain;
-```
-##### Part 6.3.7: Calculate the Proportion of Customers who are Defined as Being Close and Loyal for Each Chain
-```sql
-CREATE OR REPLACE VIEW 3biii_segmentation_distance_cust_loyal AS
-SELECT chain, 
-       SUM(CASE WHEN loyal_customer = 1 THEN far ELSE 0 END) / COUNT(DISTINCT(userID)) AS far_loyal,
-       SUM(CASE WHEN loyal_customer = 1 THEN close ELSE 0 END) / COUNT(DISTINCT(userID)) AS close_loyal,
-       SUM(CASE WHEN loyal_customer = 0 THEN far ELSE 0 END) / COUNT(DISTINCT(userID)) AS far_nonloyal,
-       SUM(CASE WHEN loyal_customer = 0 THEN close ELSE 0 END) / COUNT(DISTINCT(userID)) AS close_nonloyal       
-FROM(SELECT dw.userid,
-		dw.chain,
-		SUM(frequency) AS frequency,
-		distance,
-		CASE WHEN distance >= 5 THEN COUNT(DISTINCT(dw.userID)) ELSE 0 END AS far,
-		CASE WHEN distance < 5 THEN COUNT(DISTINCT(dw.userID)) ELSE 0 END AS close,
-		loyal_customer
-	FROM data_warehouse dw
-		LEFT JOIN customer_detail_loyal_cust cdlc
-	ON dw.userID = cdlc.userID
-    GROUP BY dw.userid, dw.chain) AS UF
-GROUP BY chain
-ORDER BY chain;
-```
-##### Part 6.3.8: Calculate the Proportional Share of Customers who are Defined as Being Loyal for Each Chain
+##### Part 6.3.2: Calculate the Proportional Share of Customers who are Defined as Being Loyal for Each Chain
 ```sql
 CREATE OR REPLACE VIEW 3ci_segmentation_loyal_cust AS
 SELECT chain,
@@ -452,7 +335,8 @@ FROM(SELECT dw.userID,
     GROUP BY chain
     ORDER BY chain;
 ```
-##### Part 6.3.9: Calculate the Proportion of Customers at Each Chain who are Defined as Loyal for Each Chain
+
+##### Part 6.3.3: Calculate the Proportion of Customers at Each Chain who are Defined as Loyal for Each Chain
 ```sql
 CREATE OR REPLACE VIEW 3cii_segmentation_loyal_trip AS
 SELECT chain,
@@ -480,7 +364,105 @@ FROM(SELECT dw.userID,
     GROUP BY chain
     ORDER BY chain;
 ```
-##### Part 6.3.10: Calculate the Proportion of Customers at Each Chain who are Defined as Loyal and frequent for Each Chain
+
+##### Part 6.3.4: Calculate Proportion of Frequent Customers at Each Chain
+```sql
+CREATE OR REPLACE VIEW 3aii_segmentation_frequent_trip AS
+SELECT chain, 
+	sum(frequent) / SUM(frequent + nonfrequent) AS frequent,
+	sum(nonfrequent) / SUM(frequent + nonfrequent) AS nonfrequent
+FROM (SELECT userid, 
+	chain, 
+	sum(frequency) AS frequency,
+	CASE WHEN SUM(frequency) > 2 THEN 1 * frequency ELSE 0 END AS frequent,
+	CASE WHEN SUM(frequency) <= 2 THEN 1 * frequency ELSE 0 END AS nonfrequent
+FROM data_warehouse
+GROUP BY userID, chain) AS I
+GROUP BY chain
+ORDER BY chain;
+```
+
+##### Part 6.3.5: Identify the Customers Defined as Close for Each Chain
+Close means that the customer lives less than 5 miles away from the venue
+```sql
+CREATE OR REPLACE VIEW 3bi_segmentation_distance_cust AS
+SELECT chain, 
+	sum(far) / COUNT(DISTINCT(userID)) AS far, 
+        sum(close) / COUNT(DISTINCT(userID)) AS close
+FROM(SELECT userid,
+		chain,
+		SUM(frequency) AS frequency,
+		distance,
+		CASE WHEN distance >= 5 THEN COUNT(DISTINCT(userID)) ELSE 0 END AS far,
+		CASE WHEN distance < 5 THEN COUNT(DISTINCT(userID)) ELSE 0 END AS close
+	FROM data_warehouse
+    GROUP BY userid, chain) AS UF
+GROUP BY chain
+ORDER BY chain;
+```
+
+##### Part 6.3.6: Calculate the Proportion of Customers who are Defined as Being Close for Each Chain
+```sql
+CREATE OR REPLACE VIEW 3bii_segmentation_distance_trip AS
+SELECT chain, 
+	sum(far) / SUM(close + far) AS far, 
+        sum(close) / SUM(close + far) AS close
+FROM(SELECT userid,
+		chain,
+		SUM(frequency) AS frequency,
+		distance,
+		CASE WHEN distance >= 5 THEN SUM(frequency) ELSE 0 END AS far,
+		CASE WHEN distance < 5 THEN SUM(frequency) ELSE 0 END AS close
+	FROM data_warehouse
+    GROUP BY userid, chain) AS UF
+GROUP BY chain
+ORDER BY chain;
+```
+
+##### Part 6.3.7: Identify Customers Defined as Frequent
+Frequent means that the customer has visited the chain more than 2 times in the past year.
+
+This is different from the next table (Part 6.3.3) as it will simply flag the frequent customers where as the next table will calculate the percent of customers at a given chain that are frequent.
+```sql
+CREATE OR REPLACE VIEW 3ai_segmentation_frequent_cust AS
+SELECT chain, 
+	sum(frequent) / COUNT(DISTINCT(userID)) AS frequent,
+	sum(nonfrequent) / COUNT(DISTINCT(userID)) AS nonfrequent
+FROM (SELECT userid, 
+	chain, 
+	sum(frequency) AS frequency,
+	CASE WHEN SUM(frequency) > 2 THEN 1 ELSE 0 END AS frequent,
+	CASE WHEN SUM(frequency) <= 2 THEN 1 ELSE 0 END AS nonfrequent
+FROM data_warehouse
+GROUP BY userID, chain) AS I
+GROUP BY chain
+ORDER BY chain;
+```
+
+##### Part 6.3.8: Identify the Frequent and Loyal Customers at Each Chain
+Here the date_warehouse and customer_detail_loyal_cust views will be joined together to form the desired output.
+```sql
+CREATE OR REPLACE VIEW 3aiii_segmentation_frequent_loyal AS
+SELECT chain, 
+	SUM(CASE WHEN loyal_customer = 1 THEN frequent ELSE 0 END) / COUNT(DISTINCT(userID)) AS frequent_loyal,
+	SUM(CASE WHEN loyal_customer = 1 THEN nonfrequent ELSE 0 END) / COUNT(DISTINCT(userID)) AS nonfrequent_loyal,
+	SUM(CASE WHEN loyal_customer = 0 THEN frequent ELSE 0 END) / COUNT(DISTINCT(userID)) AS frequent_nonloyal,
+	SUM(CASE WHEN loyal_customer = 0 THEN nonfrequent ELSE 0 END) / COUNT(DISTINCT(userID)) AS nonfrequent_nonloyal
+FROM (SELECT dw.userid, 
+		dw.chain, 
+		sum(frequency) AS frequency,
+		CASE WHEN SUM(frequency) > 2 THEN 1 ELSE 0 END AS frequent,
+		CASE WHEN SUM(frequency) <= 2 THEN 1 ELSE 0 END AS nonfrequent,
+		loyal_customer
+FROM data_warehouse dw
+LEFT JOIN customer_detail_loyal_cust cdlc
+	ON dw.userID = cdlc.userID
+GROUP BY dw.userID, dw.chain) AS I
+GROUP BY chain
+ORDER BY chain;
+```
+
+##### Part 6.3.9: Calculate the Proportion of Customers at Each Chain who are Defined as Loyal and frequent for Each Chain
 ```sql
 CREATE OR REPLACE VIEW 3d_segmentation_loyal_frequent AS
 SELECT	chain,
@@ -519,4 +501,27 @@ FROM(SELECT dw.userID,
     GROUP BY userID, chain) AS p
     GROUP BY chain
     ORDER BY chain;
+```
+
+##### Part 6.3.10: Calculate the Proportion of Customers who are Defined as Being Close and Loyal for Each Chain
+```sql
+CREATE OR REPLACE VIEW 3biii_segmentation_distance_cust_loyal AS
+SELECT chain, 
+       SUM(CASE WHEN loyal_customer = 1 THEN far ELSE 0 END) / COUNT(DISTINCT(userID)) AS far_loyal,
+       SUM(CASE WHEN loyal_customer = 1 THEN close ELSE 0 END) / COUNT(DISTINCT(userID)) AS close_loyal,
+       SUM(CASE WHEN loyal_customer = 0 THEN far ELSE 0 END) / COUNT(DISTINCT(userID)) AS far_nonloyal,
+       SUM(CASE WHEN loyal_customer = 0 THEN close ELSE 0 END) / COUNT(DISTINCT(userID)) AS close_nonloyal       
+FROM(SELECT dw.userid,
+		dw.chain,
+		SUM(frequency) AS frequency,
+		distance,
+		CASE WHEN distance >= 5 THEN COUNT(DISTINCT(dw.userID)) ELSE 0 END AS far,
+		CASE WHEN distance < 5 THEN COUNT(DISTINCT(dw.userID)) ELSE 0 END AS close,
+		loyal_customer
+	FROM data_warehouse dw
+		LEFT JOIN customer_detail_loyal_cust cdlc
+	ON dw.userID = cdlc.userID
+    GROUP BY dw.userid, dw.chain) AS UF
+GROUP BY chain
+ORDER BY chain;
 ```
