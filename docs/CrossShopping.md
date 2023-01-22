@@ -155,6 +155,8 @@ A view is a virtual table defined by a query. It is similar to a table in that i
 
 #### Part 5.1: Create the Data Warehouse View
 This will contain the data that is needed for the analysis.  All of the tables will be directly or indirectly built off of this view.
+
+Each row in this table will have a unique userID-chain combination containing the sum of the userID'S visits and distance to the corresponding chain.
 ```sql
 DROP VIEW data_warehouse;
 CREATE OR REPLACE VIEW data_warehouse AS
