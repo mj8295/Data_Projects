@@ -268,8 +268,13 @@ This view will be used to which is used to make the cross shopping tabe.  This v
 DROP VIEW cross_shopping_cust;
 CREATE OR REPLACE VIEW cross_shopping_cust AS
 SELECT userID,
-	chain
-FROM data_warehouse
+	chain,
+	AbleWare_visits,
+	BuildInc_visits,
+	Collards_visits,
+	DepotInc_visits,
+	ExcelInc_visits
+FROM customer_detail
 GROUP BY userID, chain
 ORDER BY userID;
 ```
