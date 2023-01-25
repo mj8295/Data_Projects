@@ -224,7 +224,7 @@ FROM(SELECT chain,
 	FROM data_warehouse
 	GROUP BY chain) AS f;
 ```
-![](CrossShopping_files/figures-gfm/6.1.1.png)<!-- -->
+![](CrossShopping_files/figure-gfm/6.1.1.png)<!-- -->
 ##### Part 6.1.2: Create the customer_detail_loyal View
 This view will calculate the customer loyalty numbers for the Overall Shopping Behavior Table
 ```sql
