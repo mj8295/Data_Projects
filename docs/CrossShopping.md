@@ -225,7 +225,11 @@ FROM(SELECT chain,
 	GROUP BY chain) AS f;
 ```
 This code will create a table containing the following information:
+
+
 ![](CrossShopping_files/figure-gfm/6.1.1.png)<!-- -->
+
+
 ##### Part 6.1.2: Create the customer_detail_loyal View
 This view will calculate the customer loyalty numbers for the Overall Shopping Behavior Table
 ```sql
@@ -246,7 +250,11 @@ FROM(SELECT chain,
 GROUP BY chain;
 ```
 This code will create a table containing the following information:
+
+
 ![](CrossShopping_files/figure-gfm/6.1.2.png)<!-- -->
+
+
 ##### Part 6.1.3: Create overall_shopping_behavior View
 -- Creates the overall_shopping_behavior view which is the Overall Shopping Behaviors Table
 ```sql
@@ -266,7 +274,11 @@ ORDER BY chain;
 SELECT COUNT(DISTINCT(userID)) FROM customer_detail;
 ```
 This code will create a table containing the following information:
+
+
 ![](CrossShopping_files/figure-gfm/6.1.3.png)<!-- -->
+
+
 #### Part 6.2: Create Cross Shopping Table
 ##### Part 6.2.1: Create cross_shopping_cust View
 This view will be used to which is used to make the cross shopping tabe.  This view will organize the data to be further manipulated in another view.
@@ -280,7 +292,11 @@ GROUP BY userID, chain
 ORDER BY userID;
 ```
 This code will create a table containing the following information:
+
+
 ![](CrossShopping_files/figure-gfm/6.2.1.png)<!-- -->
+
+
 ##### Part 6.2.2: Create cross_shopping View
 This will create a table that contains the share of customers that each chain has.  The data in this view is derived from the cross_shopping_cust view and customer_detail view
 ```sql
@@ -299,7 +315,11 @@ GROUP BY chain
 ORDER BY chain;
 ```
 This code will create a table containing the following information:
+
+
 ![](CrossShopping_files/figure-gfm/6.2.2.png)<!-- -->
+
+
 #### Part 6.3: Create Segmentation Tables
 ##### Part 6.3.1: Identify the Loyal Customers
 This view will identify the customers who are defined as being loyal.  Loyal will be defined as the customer only shops at that chain.
@@ -321,7 +341,11 @@ FROM(SELECT chain,
 GROUP BY userID;
 ```
 This code will create a table containing the following information:
+
+
 ![](CrossShopping_files/figure-gfm/6.3.1.png)<!-- -->
+
+
 ##### Part 6.3.2: Calculate the Proportional Share of Customers who are Defined as Being Loyal for Each Chain
 ```sql
 CREATE OR REPLACE VIEW 3ci_segmentation_loyal_cust AS
@@ -345,7 +369,11 @@ FROM(SELECT dw.userID,
     ORDER BY chain;
 ```
 This code will create a table containing the following information:
+
+
 ![](CrossShopping_files/figure-gfm/6.3.2.png)<!-- -->
+
+
 ##### Part 6.3.3: Calculate the Proportion of Customers at Each Chain who are Defined as Loyal for Each Chain
 ```sql
 CREATE OR REPLACE VIEW 3cii_segmentation_loyal_trip AS
@@ -375,7 +403,10 @@ FROM(SELECT dw.userID,
     ORDER BY chain;
 ```
 This code will create a table containing the following information:
+
 ![](CrossShopping_files/figure-gfm/6.3.3.png)<!-- -->
+
+
 ##### Part 6.3.4: Calculate Proportion of Frequent Customers at Each Chain
 ```sql
 CREATE OR REPLACE VIEW 3aii_segmentation_frequent_trip AS
@@ -393,7 +424,10 @@ GROUP BY chain
 ORDER BY chain;
 ```
 This code will create a table containing the following information:
+
 ![](CrossShopping_files/figure-gfm/6.3.4.png)<!-- -->
+
+
 ##### Part 6.3.5: Identify the Customers Defined as Close for Each Chain
 Close means that the customer lives less than 5 miles away from the venue
 ```sql
@@ -413,7 +447,10 @@ GROUP BY chain
 ORDER BY chain;
 ```
 This code will create a table containing the following information:
+
 ![](CrossShopping_files/figure-gfm/6.3.5.png)<!-- -->
+
+
 ##### Part 6.3.6: Calculate the Proportion of Customers who are Defined as Being Close for Each Chain
 ```sql
 CREATE OR REPLACE VIEW 3bii_segmentation_distance_trip AS
@@ -432,7 +469,10 @@ GROUP BY chain
 ORDER BY chain;
 ```
 This code will create a table containing the following information:
+
 ![](CrossShopping_files/figure-gfm/6.3.6.png)<!-- -->
+
+
 ##### Part 6.3.7: Identify Customers Defined as Frequent
 Frequent means that the customer has visited the chain more than 2 times in the past year.
 
@@ -453,7 +493,10 @@ GROUP BY chain
 ORDER BY chain;
 ```
 This code will create a table containing the following information:
+
 ![](CrossShopping_files/figure-gfm/6.3.7.png)<!-- -->
+
+
 ##### Part 6.3.8: Identify the Frequent and Loyal Customers at Each Chain
 Here the date_warehouse and customer_detail_loyal_cust views will be joined together to form the desired output.
 ```sql
@@ -477,7 +520,10 @@ GROUP BY chain
 ORDER BY chain;
 ```
 This code will create a table containing the following information:
+
 ![](CrossShopping_files/figure-gfm/6.3.8.png)<!-- -->
+
+
 ##### Part 6.3.9: Calculate the Proportion of Customers at Each Chain who are Defined as Loyal and frequent for Each Chain
 ```sql
 CREATE OR REPLACE VIEW 3d_segmentation_loyal_frequent AS
@@ -519,7 +565,10 @@ FROM(SELECT dw.userID,
     ORDER BY chain;
 ```
 This code will create a table containing the following information:
+
 ![](CrossShopping_files/figure-gfm/6.3.9.png)<!-- -->
+
+
 ##### Part 6.3.10: Calculate the Proportion of Customers who are Defined as Being Close and Loyal for Each Chain
 ```sql
 CREATE OR REPLACE VIEW 3biii_segmentation_distance_cust_loyal AS
@@ -543,4 +592,5 @@ GROUP BY chain
 ORDER BY chain;
 ```
 This code will create a table containing the following information:
+
 ![](CrossShopping_files/figure-gfm/6.3.10.png)<!-- -->
